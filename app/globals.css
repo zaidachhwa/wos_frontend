@@ -1,0 +1,214 @@
+@import "tailwindcss";
+
+:root {
+  --background: #faf9f7;
+  --surface: #ffffff;
+  --border: #e8e5e0;
+  --primary: #1c1b19;
+  --primary-foreground: #ffffff;
+  --muted: #6f6b63;
+  --success: #1f7a4d;
+  --warning: #b45309;
+  --danger: #b91c1c;
+  --info: #1d4ed8;
+
+  /* Calendar event palette — muted mid-tones that sit calmly on the warm
+     monochrome surface (white text stays readable on all of them). */
+  --cal-meeting: #6d7fa8;
+  --cal-deep-work: #7b6ba3;
+  --cal-personal: #a08c6b;
+  --cal-followup: #b98a54;
+  --cal-project-work: #6f9179;
+  --cal-break: #a3a49c;
+  --cal-task-deadline: #b96a6a;
+  --cal-project-deadline: #b98a54;
+  --cal-default: #8b8577;
+}
+
+/* Dark theme — same warm hue family, inverted values. Everything downstream
+   (components, FullCalendar, cal palette) reads tokens, so this is the whole
+   dark mode. */
+:root[data-theme="dark"] {
+  --background: #171614;
+  --surface: #201f1c;
+  --border: #35332e;
+  --primary: #f0eee9;
+  --primary-foreground: #1c1b19;
+  --muted: #9b968b;
+  --success: #5fb98a;
+  --warning: #d9a05f;
+  --danger: #e07d7d;
+  --info: #7c9be8;
+
+  --cal-meeting: #7d8fb8;
+  --cal-deep-work: #8b7bb3;
+  --cal-personal: #b09c7b;
+  --cal-followup: #c99a64;
+  --cal-project-work: #7fa189;
+  --cal-break: #7b7c74;
+  --cal-task-deadline: #c97a7a;
+  --cal-project-deadline: #c99a64;
+  --cal-default: #9b9587;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-muted: var(--muted);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+
+  --radius-card: 16px;
+  --radius-btn: 10px;
+  --radius-input: 10px;
+  --radius-dialog: 18px;
+  --radius-dropdown: 12px;
+
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+}
+
+body {
+  background: var(--background);
+  color: var(--primary);
+  font-family: var(--font-sans);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* FullCalendar theme — align the stock widget with the design system. */
+.fc {
+  --fc-border-color: var(--border);
+  --fc-page-bg-color: var(--surface);
+  --fc-neutral-bg-color: var(--background);
+  --fc-today-bg-color: color-mix(in srgb, var(--warning) 6%, var(--surface));
+  --fc-now-indicator-color: var(--danger);
+  --fc-event-border-color: transparent;
+  --fc-list-event-hover-bg-color: var(--background);
+  font-family: var(--font-sans);
+}
+
+.fc .fc-toolbar-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.fc .fc-button {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: var(--radius-btn);
+  padding: 6px 12px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  box-shadow: none;
+  text-transform: capitalize;
+  transition: color 150ms ease, background-color 150ms ease;
+}
+
+.fc .fc-button:hover {
+  background: var(--background);
+  color: var(--primary);
+}
+
+.fc .fc-button-primary:not(:disabled).fc-button-active,
+.fc .fc-button-primary:not(:disabled):active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.fc .fc-button:focus,
+.fc .fc-button-primary:not(:disabled).fc-button-active:focus,
+.fc .fc-button-primary:not(:disabled):active:focus {
+  box-shadow: none;
+  outline: 2px solid color-mix(in srgb, var(--primary) 30%, transparent);
+  outline-offset: 1px;
+}
+
+.fc .fc-col-header-cell {
+  background: var(--background);
+}
+
+.fc .fc-col-header-cell-cushion {
+  padding: 8px 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.fc .fc-timegrid-slot-label-cushion,
+.fc .fc-list-day-text,
+.fc .fc-list-day-side-text {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.fc .fc-timegrid-slot {
+  height: 2.5rem;
+}
+
+.fc .fc-daygrid-day-number {
+  font-size: 0.8125rem;
+  color: var(--muted);
+  padding: 6px 8px;
+}
+
+.fc .fc-day-today .fc-daygrid-day-number {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.fc .fc-event {
+  border-radius: 6px;
+  padding: 1px 4px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  border: 0;
+}
+
+.fc .fc-event .fc-event-main {
+  /* Event fills are mid-tones designed for white text in BOTH themes. */
+  color: #ffffff;
+}
+
+.fc .fc-event:hover {
+  filter: brightness(1.06);
+}
+
+.fc .fc-daygrid-more-link,
+.fc .fc-list-event-title a {
+  color: var(--primary);
+  font-size: 0.8125rem;
+}
+
+/* Theme toggle icons: CSS picks the icon so SSR and client always agree. */
+:root[data-theme="dark"] .theme-dark-hidden {
+  display: none;
+}
+:root:not([data-theme="dark"]) .theme-dark-only {
+  display: none;
+}

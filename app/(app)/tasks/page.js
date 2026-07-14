@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { CheckSquare, Columns3, Plus } from "lucide-react";
 
@@ -18,15 +19,38 @@ import { fetchDirectory } from "@/services/orgService";
 
 const STATUSES = ["backlog", "todo", "in_progress", "review", "testing", "completed", "blocked"];
 
+const startOfDay = (offset = 0) => {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + offset);
+  return d;
+};
+
+const bucketOf = (t) => {
+  if (!t.deadline) return "No deadline";
+  const dl = new Date(t.deadline);
+  if (dl < startOfDay(0) && t.status !== "completed") return "Overdue";
+  if (dl < startOfDay(1)) return "Today";
+  if (dl < startOfDay(8)) return "This week";
+  return "Later";
+};
+const BUCKET_ORDER = ["Overdue", "Today", "This week", "Later", "No deadline"];
+
 export default function TasksPage() {
   const me = useAuthStore((s) => s.user);
   const canCreate = ["admin", "manager", "sublead"].includes(me?.role);
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [scope, setScope] = useState("me");
   const [status, setStatus] = useState("");
   const [projectFilter, setProjectFilter] = useState("");
   const [search, setSearch] = useState("");
-  const [openTask, setOpenTask] = useState(null);
   const [createOpen, setCreateOpen] = useState(false);
+
+  const openId = searchParams.get("open");
+  const openTask = openId ? { _id: openId } : null;
+  const setOpenTask = (task) => router.push(`/tasks?open=${task._id}`);
+  const closeTask = () => router.replace("/tasks");
 
   const filters = {
     assignee: scope === "me" ? "me" : undefined,
@@ -40,6 +64,14 @@ export default function TasksPage() {
   });
   const { data: projects = [] } = useQuery({ queryKey: ["projects"], queryFn: fetchProjects });
   const { data: directory = [] } = useQuery({ queryKey: ["directory"], queryFn: fetchDirectory });
+
+  const groups = (tasks || [])
+    .reduce((acc, t) => {
+      const bucket = bucketOf(t);
+      (acc[bucket] ||= []).push(t);
+      return acc;
+    }, {});
+  const groupedTasks = BUCKET_ORDER.map((b) => [b, groups[b] || []]).filter(([, list]) => list.length);
 
   return (
     <div className="mx-auto max-w-[1600px] space-y-6">
@@ -113,7 +145,18 @@ export default function TasksPage() {
       {isLoading ? (
         <Skeleton className="h-64 w-full rounded-card" />
       ) : tasks?.length ? (
-        <TaskTable tasks={tasks} onOpen={setOpenTask} />
+        <div className="space-y-6">
+          {groupedTasks.map(([bucket, list]) => (
+            <section key={bucket}>
+              <h2 className="px-1 text-xs font-semibold uppercase tracking-wide text-muted">
+                {bucket} <span className="font-normal normal-case">({list.length})</span>
+              </h2>
+              <div className="mt-2">
+                <TaskTable tasks={list} onOpen={setOpenTask} />
+              </div>
+            </section>
+          ))}
+        </div>
       ) : (
         <EmptyState
           icon={CheckSquare}
@@ -122,7 +165,7 @@ export default function TasksPage() {
         />
       )}
 
-      <TaskDrawer task={openTask} onClose={() => setOpenTask(null)} directory={directory} />
+      <TaskDrawer task={openTask} onClose={closeTask} directory={directory} />
       {canCreate && (
         <TaskDialog open={createOpen} onClose={() => setCreateOpen(false)} projects={projects} directory={directory} />
       )}

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import FollowUpCard from "@/components/followups/FollowUpCard";
+import FollowUpHistory from "@/components/followups/FollowUpHistory";
 import TeamFollowUps from "@/components/followups/TeamFollowUps";
 import Skeleton from "@/components/ui/Skeleton";
 import { useAuthStore } from "@/store/authStore";
@@ -26,8 +27,14 @@ export default function FollowUpsPage() {
     queryKey: ["followups", "own", today],
     queryFn: () => fetchFollowUps({ date: today }),
   });
+  const { data: history } = useQuery({
+    queryKey: ["followups", "own", "history"],
+    queryFn: () => fetchFollowUps({}),
+    enabled: tab === "mine",
+  });
 
   const byType = (type) => (own || []).find((f) => f.type === type);
+  const pastFollowUps = (history || []).filter((f) => f.date !== today && f.status !== "draft");
 
   return (
     <div className="mx-auto max-w-[1600px] space-y-6">
@@ -57,10 +64,16 @@ export default function FollowUpsPage() {
             <Skeleton className="h-80 w-full rounded-card" />
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <FollowUpCard type="morning" date={today} followUp={byType("morning")} />
-            <FollowUpCard type="evening" date={today} followUp={byType("evening")} />
-          </div>
+          <>
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <FollowUpCard type="morning" date={today} followUp={byType("morning")} />
+              <FollowUpCard type="evening" date={today} followUp={byType("evening")} />
+            </div>
+            <div className="mt-6">
+              <h3 className="mb-3 text-base font-semibold tracking-tight">Previous follow-ups</h3>
+              <FollowUpHistory followUps={pastFollowUps} />
+            </div>
+          </>
         )
       ) : (
         <TeamFollowUps today={today} canReview={canReview} />

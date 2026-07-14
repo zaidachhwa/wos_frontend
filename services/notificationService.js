@@ -14,6 +14,14 @@ export const markAllRead = async () => {
   await axiosInstance.post("/notifications/mark-all-read");
 };
 
+export const deleteNotification = async (id) => {
+  await axiosInstance.delete(`/notifications/${id}`);
+};
+
+export const clearNotifications = async () => {
+  await axiosInstance.delete("/notifications");
+};
+
 export const fetchActivity = async (params = {}) => {
   const { data } = await axiosInstance.get("/activity", { params });
   return data.data.activity;

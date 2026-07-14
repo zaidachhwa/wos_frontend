@@ -6,6 +6,7 @@ import { Send, Plus } from "lucide-react";
 
 import Drawer from "@/components/ui/Drawer";
 import Skeleton from "@/components/ui/Skeleton";
+import Badge from "@/components/ui/Badge";
 import { Select, Button } from "@/components/ui/Field";
 import { useAuthStore } from "@/store/authStore";
 import { fetchTask, updateTask, addComment } from "@/services/taskService";
@@ -124,10 +125,39 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
             </Select>
           </div>
 
+          <div>
+            <label htmlFor="collaborators" className="text-sm font-medium">
+              Collaborators
+            </label>
+            <select
+              id="collaborators"
+              multiple
+              value={(task.collaborators || []).map((c) => c._id)}
+              disabled={!canManage || patch.isPending}
+              onChange={(e) =>
+                patch.mutate({ collaborators: Array.from(e.target.selectedOptions, (o) => o.value) })
+              }
+              className="mt-1 w-full rounded-input border border-border bg-surface px-3 py-2 text-sm outline-none transition-colors duration-150 focus:border-primary disabled:opacity-50"
+              size={Math.min(4, directory.length || 1)}
+            >
+              {directory.map((d) => (
+                <option key={d._id} value={d._id}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-muted">Ctrl/Cmd-click to select multiple.</p>
+          </div>
+
           <div className="grid grid-cols-3 gap-4 rounded-card border border-border bg-background/60 p-4 text-sm">
             <div>
               <p className="text-xs text-muted">Deadline</p>
-              <p className="mt-0.5 font-medium tabular-nums">{fmtDate(task.deadline)}</p>
+              <p className="mt-0.5 flex items-center gap-1.5 font-medium tabular-nums">
+                {fmtDate(task.deadline)}
+                {task.deadline && new Date(task.deadline) < new Date() && task.status !== "completed" && (
+                  <Badge value="overdue" tone="danger" />
+                )}
+              </p>
             </div>
             <div>
               <p className="text-xs text-muted">Estimated</p>

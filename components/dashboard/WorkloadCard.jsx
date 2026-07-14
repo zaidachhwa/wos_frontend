@@ -5,6 +5,7 @@ import { Sparkles } from "lucide-react";
 
 import WidgetCard from "@/components/dashboard/WidgetCard";
 import { Button } from "@/components/ui/Field";
+import Markdown from "@/components/shared/Markdown";
 import { analyzeWorkload } from "@/services/aiService";
 
 export default function WorkloadCard({ workload }) {
@@ -38,9 +39,9 @@ export default function WorkloadCard({ workload }) {
       )}
 
       {analysis.data && (
-        <p className="mt-3 max-h-40 overflow-y-auto whitespace-pre-wrap rounded-input border border-border bg-background/60 px-3 py-2 text-sm">
-          {analysis.data}
-        </p>
+        <div className="mt-3 max-h-40 overflow-y-auto rounded-input border border-border bg-background/60 px-3 py-2">
+          <Markdown text={analysis.data} />
+        </div>
       )}
       {workload?.length > 0 && (
         <div className="mt-3">

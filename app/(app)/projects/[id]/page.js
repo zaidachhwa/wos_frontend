@@ -170,6 +170,11 @@ export default function ProjectDetailsPage({ params }) {
                   <p className="mt-3 text-xs text-muted">
                     {m.taskCount ?? 0} tasks · {m.deadline ? `due ${new Date(m.deadline).toLocaleDateString()}` : "no deadline"}
                   </p>
+                  {m.collaborators?.length > 0 && (
+                    <p className="mt-1 truncate text-xs text-muted">
+                      With {m.collaborators.map((c) => c.name).join(", ")}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>

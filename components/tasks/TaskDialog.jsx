@@ -48,6 +48,7 @@ export default function TaskDialog({ open, onClose: onCloseProp, projects, direc
         title: "",
         description: "",
         assignee: "",
+        collaborators: [],
         priority: "medium",
         estimatedHours: "",
         deadline: "",
@@ -118,7 +119,7 @@ export default function TaskDialog({ open, onClose: onCloseProp, projects, direc
         </div>
         <Input label="Title" error={errors.title?.message} {...register("title")} />
         <Textarea label="Description" {...register("description")} />
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Select label="Assignee" {...register("assignee")}>
             <option value="">Unassigned</option>
             {directory.map((d) => (
@@ -127,6 +128,15 @@ export default function TaskDialog({ open, onClose: onCloseProp, projects, direc
               </option>
             ))}
           </Select>
+          <Select label="Collaborators" multiple size={Math.min(4, directory.length || 1)} {...register("collaborators")}>
+            {directory.map((d) => (
+              <option key={d._id} value={d._id}>
+                {d.name}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           <Select label="Priority" {...register("priority")}>
             {["low", "medium", "high", "critical"].map((p) => (
               <option key={p} value={p}>

@@ -5,6 +5,11 @@ export const fetchTeamReport = async ({ from, to }) => {
   return data.data;
 };
 
+export const fetchWorkLog = async (date) => {
+  const { data } = await axiosInstance.get("/reports/work-log", { params: date ? { date } : {} });
+  return data.data;
+};
+
 export const downloadTeamReportCsv = async ({ from, to }) => {
   const { data } = await axiosInstance.get("/reports/team", {
     params: { from, to, format: "csv" },

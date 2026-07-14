@@ -6,6 +6,7 @@ import { Send, Sparkles } from "lucide-react";
 
 import Drawer from "@/components/ui/Drawer";
 import { Button } from "@/components/ui/Field";
+import Markdown from "@/components/shared/Markdown";
 import { askAssistant } from "@/services/aiService";
 
 const SUGGESTIONS = [
@@ -66,13 +67,13 @@ export default function AssistantDrawer({ open, onClose }) {
           {messages.map((m, i) => (
             <div
               key={i}
-              className={`max-w-[85%] whitespace-pre-wrap rounded-card px-3 py-2 text-sm ${
+              className={`max-w-[85%] rounded-card px-3 py-2 text-sm ${
                 m.role === "user"
-                  ? "ml-auto bg-primary text-primary-foreground"
+                  ? "ml-auto whitespace-pre-wrap bg-primary text-primary-foreground"
                   : "border border-border bg-background/60"
               }`}
             >
-              {m.text}
+              {m.role === "assistant" ? <Markdown text={m.text} /> : m.text}
             </div>
           ))}
           {ask.isPending && (

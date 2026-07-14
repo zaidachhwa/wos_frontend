@@ -37,6 +37,7 @@ export default function ModuleDialog({ open, onClose: onCloseProp, projectId, mo
         name: module?.name || "",
         description: module?.description || "",
         lead: module?.lead?._id || module?.lead || "",
+        collaborators: (module?.collaborators || []).map((c) => c._id || c),
         status: module?.status || "planning",
         deadline: module?.deadline ? module.deadline.slice(0, 10) : "",
       });
@@ -84,7 +85,7 @@ export default function ModuleDialog({ open, onClose: onCloseProp, projectId, mo
         )}
         <Input label="Name" error={errors.name?.message} {...register("name")} />
         <Textarea label="Description" {...register("description")} />
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Select label="Lead" {...register("lead")}>
             <option value="">None</option>
             {leadOptions.map((m) => (
@@ -93,6 +94,15 @@ export default function ModuleDialog({ open, onClose: onCloseProp, projectId, mo
               </option>
             ))}
           </Select>
+          <Select label="Collaborators" multiple size={Math.min(4, directory.length || 1)} {...register("collaborators")}>
+            {directory.map((m) => (
+              <option key={m._id} value={m._id}>
+                {m.name}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {isEdit && (
             <Select label="Status" {...register("status")}>
               {["planning", "active", "on_hold", "completed", "cancelled"].map((s) => (

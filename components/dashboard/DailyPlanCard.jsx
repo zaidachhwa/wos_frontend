@@ -5,6 +5,7 @@ import { Sparkles } from "lucide-react";
 
 import WidgetCard from "@/components/dashboard/WidgetCard";
 import { Button } from "@/components/ui/Field";
+import Markdown from "@/components/shared/Markdown";
 import { generateDailyPlan } from "@/services/aiService";
 
 export default function DailyPlanCard() {
@@ -14,7 +15,9 @@ export default function DailyPlanCard() {
   return (
     <WidgetCard title="AI daily plan">
       {plan.data ? (
-        <p className="max-h-64 overflow-y-auto whitespace-pre-wrap text-sm">{plan.data}</p>
+        <div className="max-h-64 overflow-y-auto">
+          <Markdown text={plan.data} />
+        </div>
       ) : (
         <p className="text-sm text-muted">
           {notConfigured

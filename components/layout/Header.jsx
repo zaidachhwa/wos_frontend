@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, Moon, Search, Sparkles, Sun } from "lucide-react";
+import { LogOut, Menu, Moon, Search, Sparkles, Sun } from "lucide-react";
 
 import { NAV_ITEMS } from "@/constants/nav.constants";
 import NotificationBell from "@/components/layout/NotificationBell";
@@ -11,7 +11,7 @@ import CommandPalette from "@/components/layout/CommandPalette";
 import { useAuthStore } from "@/store/authStore";
 import { logout } from "@/services/authService";
 
-export default function Header() {
+export default function Header({ onMenuClick }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, clearAuth } = useAuthStore();
@@ -53,13 +53,22 @@ export default function Header() {
   };
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between border-b border-border bg-surface px-8">
-      <h1 className="text-lg font-semibold tracking-tight">{title}</h1>
-      <div className="flex items-center gap-4">
+    <header className="flex h-16 shrink-0 items-center justify-between border-b border-border bg-surface px-4 sm:px-6 lg:px-8">
+      <div className="flex min-w-0 items-center gap-2">
+        <button
+          onClick={onMenuClick}
+          aria-label="Open menu"
+          className="-ml-1.5 rounded-btn p-2 text-muted transition-colors duration-150 hover:bg-background hover:text-primary lg:hidden"
+        >
+          <Menu size={20} />
+        </button>
+        <h1 className="truncate text-lg font-semibold tracking-tight">{title}</h1>
+      </div>
+      <div className="flex shrink-0 items-center gap-1 sm:gap-4">
         <button
           onClick={() => setPaletteOpen(true)}
           aria-label="Search (Ctrl+K)"
-          className="flex items-center gap-2 rounded-btn border border-border px-3 py-1.5 text-sm text-muted transition-colors duration-150 hover:bg-background hover:text-primary"
+          className="flex items-center gap-2 rounded-btn border border-border px-2 py-1.5 text-sm text-muted transition-colors duration-150 hover:bg-background hover:text-primary sm:px-3"
         >
           <Search size={15} />
           <span className="hidden sm:inline">Search</span>
@@ -81,7 +90,7 @@ export default function Header() {
           <Sparkles size={18} />
         </button>
         <NotificationBell />
-        <div className="text-right">
+        <div className="hidden text-right md:block">
           <p className="text-sm font-medium">{user?.name}</p>
           <p className="text-xs capitalize text-muted">{user?.role}</p>
         </div>

@@ -78,13 +78,13 @@ export default function ReportsPage() {
               <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
                 <th className="px-4 py-3 font-medium">Person</th>
                 <th className="px-4 py-3 text-right font-medium">Tasks done</th>
-                <th className="px-4 py-3 text-right font-medium">Est. hrs</th>
-                <th className="px-4 py-3 text-right font-medium">Actual hrs</th>
-                <th className="px-4 py-3 text-right font-medium">Open</th>
-                <th className="px-4 py-3 text-right font-medium">Blocked</th>
-                <th className="px-4 py-3 text-right font-medium">Follow-ups</th>
+                <th className="hidden px-4 py-3 text-right font-medium md:table-cell">Est. hrs</th>
+                <th className="hidden px-4 py-3 text-right font-medium md:table-cell">Actual hrs</th>
+                <th className="hidden px-4 py-3 text-right font-medium sm:table-cell">Open</th>
+                <th className="hidden px-4 py-3 text-right font-medium sm:table-cell">Blocked</th>
+                <th className="hidden px-4 py-3 text-right font-medium lg:table-cell">Follow-ups</th>
                 <th className="px-4 py-3 text-right font-medium">Compliance</th>
-                <th className="px-4 py-3 text-right font-medium">Streak</th>
+                <th className="hidden px-4 py-3 text-right font-medium lg:table-cell">Streak</th>
               </tr>
             </thead>
             <tbody>
@@ -95,19 +95,19 @@ export default function ReportsPage() {
                     <p className="text-xs text-muted">{r.user.designation || r.user.role}</p>
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums">{r.tasksCompleted}</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-muted">{r.estimatedHours}</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-muted">{r.actualHours}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">{r.openTasks}</td>
-                  <td className={`px-4 py-3 text-right tabular-nums ${r.blockedTasks ? "text-danger" : "text-muted"}`}>
+                  <td className="hidden px-4 py-3 text-right tabular-nums text-muted md:table-cell">{r.estimatedHours}</td>
+                  <td className="hidden px-4 py-3 text-right tabular-nums text-muted md:table-cell">{r.actualHours}</td>
+                  <td className="hidden px-4 py-3 text-right tabular-nums sm:table-cell">{r.openTasks}</td>
+                  <td className={`hidden px-4 py-3 text-right tabular-nums sm:table-cell ${r.blockedTasks ? "text-danger" : "text-muted"}`}>
                     {r.blockedTasks}
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums text-muted">
+                  <td className="hidden px-4 py-3 text-right tabular-nums text-muted lg:table-cell">
                     {r.followUpsSubmitted}/{r.followUpsExpected}
                   </td>
                   <td className={`px-4 py-3 text-right font-medium tabular-nums ${complianceTone(r.complianceRate)}`}>
                     {r.complianceRate}%
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums">
+                  <td className="hidden px-4 py-3 text-right tabular-nums lg:table-cell">
                     <span className="inline-flex items-center gap-1">
                       {r.morningStreak > 2 && <Flame size={13} className="text-warning" />}
                       {r.morningStreak}d

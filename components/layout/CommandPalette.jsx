@@ -67,7 +67,7 @@ export default function CommandPalette({ open, onClose }) {
     <dialog
       ref={dialogRef}
       onClose={onClose}
-      className="m-auto mt-[12vh] w-full max-w-xl rounded-dialog border border-border bg-surface p-0 text-primary shadow-lg backdrop:bg-black/30"
+      className="m-auto mt-[12vh] w-[calc(100%-2rem)] max-w-xl rounded-dialog border border-border bg-surface p-0 text-primary shadow-lg backdrop:bg-black/30"
     >
       <div className="flex items-center gap-2 border-b border-border px-4">
         <Search size={16} className="text-muted" />

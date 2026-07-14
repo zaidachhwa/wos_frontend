@@ -14,10 +14,10 @@ export default function UserTable({ users, canEdit, onEdit }) {
           <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
             <th className="px-4 py-3 font-medium">Name</th>
             <th className="px-4 py-3 font-medium">Role</th>
-            <th className="px-4 py-3 font-medium">Designation</th>
-            <th className="px-4 py-3 font-medium">Department</th>
-            <th className="px-4 py-3 font-medium">Team</th>
-            {canEdit && <th className="px-4 py-3 font-medium">Status</th>}
+            <th className="hidden px-4 py-3 font-medium sm:table-cell">Designation</th>
+            <th className="hidden px-4 py-3 font-medium md:table-cell">Department</th>
+            <th className="hidden px-4 py-3 font-medium md:table-cell">Team</th>
+            {canEdit && <th className="hidden px-4 py-3 font-medium sm:table-cell">Status</th>}
             {canEdit && <th className="px-4 py-3" />}
           </tr>
         </thead>
@@ -31,11 +31,11 @@ export default function UserTable({ users, canEdit, onEdit }) {
               <td className="px-4 py-3">
                 <Badge value={u.role} tone={ROLE_TONES[u.role]} />
               </td>
-              <td className="px-4 py-3 text-muted">{u.designation || "—"}</td>
-              <td className="px-4 py-3 text-muted">{u.department?.name || "—"}</td>
-              <td className="px-4 py-3 text-muted">{u.team?.name || "—"}</td>
+              <td className="hidden px-4 py-3 text-muted sm:table-cell">{u.designation || "—"}</td>
+              <td className="hidden px-4 py-3 text-muted md:table-cell">{u.department?.name || "—"}</td>
+              <td className="hidden px-4 py-3 text-muted md:table-cell">{u.team?.name || "—"}</td>
               {canEdit && (
-                <td className="px-4 py-3">
+                <td className="hidden px-4 py-3 sm:table-cell">
                   <Badge value={u.isActive ? "active" : "inactive"} tone={u.isActive ? "success" : "danger"} />
                 </td>
               )}

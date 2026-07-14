@@ -18,7 +18,7 @@ export default function Dialog({ open, onClose, title, children, footer }) {
     <dialog
       ref={ref}
       onClose={onClose}
-      className="m-auto w-full max-w-[720px] rounded-dialog border border-border bg-surface p-0 text-primary shadow-lg backdrop:bg-black/30"
+      className="m-auto w-[calc(100%-2rem)] max-w-[720px] rounded-dialog border border-border bg-surface p-0 text-primary shadow-lg backdrop:bg-black/30"
     >
       <div className="flex items-center justify-between border-b border-border px-6 py-4">
         <h2 className="text-lg font-semibold tracking-tight">{title}</h2>

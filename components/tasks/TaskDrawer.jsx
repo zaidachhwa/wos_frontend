@@ -149,7 +149,7 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
             <p className="mt-1 text-xs text-muted">Ctrl/Cmd-click to select multiple.</p>
           </div>
 
-          <div className="grid grid-cols-3 gap-4 rounded-card border border-border bg-background/60 p-4 text-sm">
+          <div className="grid grid-cols-1 gap-4 rounded-card border border-border bg-background/60 p-4 text-sm sm:grid-cols-3">
             <div>
               <p className="text-xs text-muted">Deadline</p>
               <p className="mt-0.5 flex items-center gap-1.5 font-medium tabular-nums">

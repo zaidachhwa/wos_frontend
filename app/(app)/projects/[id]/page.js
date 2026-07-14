@@ -86,12 +86,12 @@ export default function ProjectDetailsPage({ params }) {
         </div>
       </header>
 
-      <div className="flex gap-1 rounded-btn border border-border bg-surface p-1">
+      <div className="flex gap-1 overflow-x-auto rounded-btn border border-border bg-surface p-1">
         {TABS.map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`rounded-[8px] px-3 py-1.5 text-sm font-medium capitalize transition-colors duration-150 ${
+            className={`shrink-0 rounded-[8px] px-3 py-1.5 text-sm font-medium capitalize transition-colors duration-150 ${
               tab === t ? "bg-primary text-primary-foreground" : "text-muted hover:text-primary"
             }`}
           >

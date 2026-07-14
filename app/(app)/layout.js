@@ -14,6 +14,7 @@ export default function AppLayout({ children }) {
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
   const [checking, setChecking] = useState(!user);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   useRealtime();
 
   useEffect(() => {
@@ -44,10 +45,10 @@ export default function AppLayout({ children }) {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <Sidebar />
+      <Sidebar mobileOpen={mobileNavOpen} onMobileClose={() => setMobileNavOpen(false)} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <Header />
-        <main className="flex-1 overflow-y-auto p-8">{children}</main>
+        <Header onMenuClick={() => setMobileNavOpen(true)} />
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">{children}</main>
       </div>
     </div>
   );

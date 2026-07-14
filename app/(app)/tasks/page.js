@@ -46,6 +46,7 @@ export default function TasksPage() {
   const [projectFilter, setProjectFilter] = useState("");
   const [search, setSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
+  const [dateTab, setDateTab] = useState(null);
 
   const openId = searchParams.get("open");
   const openTask = openId ? { _id: openId } : null;
@@ -72,6 +73,8 @@ export default function TasksPage() {
       return acc;
     }, {});
   const groupedTasks = BUCKET_ORDER.map((b) => [b, groups[b] || []]).filter(([, list]) => list.length);
+  const activeBucket = groupedTasks.some(([b]) => b === dateTab) ? dateTab : groupedTasks[0]?.[0];
+  const activeList = groupedTasks.find(([b]) => b === activeBucket)?.[1] || [];
 
   return (
     <div className="mx-auto max-w-[1600px] space-y-6">
@@ -145,17 +148,21 @@ export default function TasksPage() {
       {isLoading ? (
         <Skeleton className="h-64 w-full rounded-card" />
       ) : tasks?.length ? (
-        <div className="space-y-6">
-          {groupedTasks.map(([bucket, list]) => (
-            <section key={bucket}>
-              <h2 className="px-1 text-xs font-semibold uppercase tracking-wide text-muted">
-                {bucket} <span className="font-normal normal-case">({list.length})</span>
-              </h2>
-              <div className="mt-2">
-                <TaskTable tasks={list} onOpen={setOpenTask} />
-              </div>
-            </section>
-          ))}
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-1 rounded-btn border border-border bg-surface p-1">
+            {groupedTasks.map(([bucket, list]) => (
+              <button
+                key={bucket}
+                onClick={() => setDateTab(bucket)}
+                className={`rounded-[8px] px-3 py-1.5 text-sm font-medium transition-colors duration-150 ${
+                  activeBucket === bucket ? "bg-primary text-primary-foreground" : "text-muted hover:text-primary"
+                }`}
+              >
+                {bucket} <span className="tabular-nums">({list.length})</span>
+              </button>
+            ))}
+          </div>
+          <TaskTable tasks={activeList} onOpen={setOpenTask} />
         </div>
       ) : (
         <EmptyState

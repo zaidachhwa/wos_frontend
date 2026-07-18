@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CheckSquare, Columns3, Plus } from "lucide-react";
 
 import TaskTable from "@/components/tasks/TaskTable";
@@ -13,7 +13,7 @@ import EmptyState from "@/components/ui/EmptyState";
 import Skeleton from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Field";
 import { useAuthStore } from "@/store/authStore";
-import { fetchTasks } from "@/services/taskService";
+import { fetchTasks, bulkUpdateTasks } from "@/services/taskService";
 import { fetchProjects } from "@/services/projectService";
 import { fetchDirectory } from "@/services/orgService";
 
@@ -39,6 +39,8 @@ const BUCKET_ORDER = ["Overdue", "Today", "This week", "Later", "No deadline"];
 export default function TasksPage() {
   const me = useAuthStore((s) => s.user);
   const canCreate = ["admin", "manager", "sublead"].includes(me?.role);
+  const canBulk = canCreate;
+  const queryClient = useQueryClient();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [scope, setScope] = useState("me");
@@ -47,6 +49,9 @@ export default function TasksPage() {
   const [search, setSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [dateTab, setDateTab] = useState(null);
+  const [selected, setSelected] = useState(new Set());
+  const [bulkStatus, setBulkStatus] = useState("");
+  const [bulkAssignees, setBulkAssignees] = useState([]);
 
   const openId = searchParams.get("open");
   const openTask = openId ? { _id: openId } : null;
@@ -75,6 +80,43 @@ export default function TasksPage() {
   const groupedTasks = BUCKET_ORDER.map((b) => [b, groups[b] || []]).filter(([, list]) => list.length);
   const activeBucket = groupedTasks.some(([b]) => b === dateTab) ? dateTab : groupedTasks[0]?.[0];
   const activeList = groupedTasks.find(([b]) => b === activeBucket)?.[1] || [];
+
+  const toggleSelect = (id) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const toggleSelectAll = (visibleTasks, checked) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      for (const t of visibleTasks) {
+        if (checked) next.add(t._id);
+        else next.delete(t._id);
+      }
+      return next;
+    });
+
+  const clearSelection = () => {
+    setSelected(new Set());
+    setBulkStatus("");
+    setBulkAssignees([]);
+  };
+
+  const bulkMutation = useMutation({
+    mutationFn: () =>
+      bulkUpdateTasks({
+        ids: Array.from(selected),
+        status: bulkStatus || undefined,
+        assignees: bulkAssignees.length ? bulkAssignees : undefined,
+      }),
+    onSuccess: () => {
+      clearSelection();
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+    },
+  });
 
   return (
     <div className="mx-auto max-w-[1600px] space-y-6">
@@ -162,7 +204,61 @@ export default function TasksPage() {
               </button>
             ))}
           </div>
-          <TaskTable tasks={activeList} onOpen={setOpenTask} />
+
+          {canBulk && selected.size > 0 && (
+            <div className="sticky top-0 z-10 flex flex-wrap items-center gap-3 rounded-card border border-primary/30 bg-primary/5 p-3">
+              <p className="text-sm font-medium">{selected.size} selected</p>
+              <select
+                aria-label="Bulk set status"
+                value={bulkStatus}
+                onChange={(e) => setBulkStatus(e.target.value)}
+                className="rounded-input border border-border bg-surface px-3 py-2 text-sm outline-none transition-colors duration-150 focus:border-primary"
+              >
+                <option value="">Status unchanged</option>
+                {STATUSES.map((s) => (
+                  <option key={s} value={s}>
+                    {s.replace("_", " ")}
+                  </option>
+                ))}
+              </select>
+              <select
+                aria-label="Bulk set assignees"
+                multiple
+                value={bulkAssignees}
+                onChange={(e) => setBulkAssignees(Array.from(e.target.selectedOptions, (o) => o.value))}
+                className="rounded-input border border-border bg-surface px-3 py-2 text-sm outline-none transition-colors duration-150 focus:border-primary"
+                size={Math.min(4, directory.length || 1)}
+              >
+                {directory.map((d) => (
+                  <option key={d._id} value={d._id}>
+                    {d.name}
+                  </option>
+                ))}
+              </select>
+              <Button
+                onClick={() => bulkMutation.mutate()}
+                disabled={bulkMutation.isPending || (!bulkStatus && !bulkAssignees.length)}
+              >
+                Apply to {selected.size} tasks
+              </Button>
+              <Button variant="secondary" onClick={clearSelection}>
+                Clear
+              </Button>
+              {bulkMutation.isError && (
+                <p className="w-full text-sm text-danger">
+                  {bulkMutation.error?.response?.data?.message || "Something went wrong"}
+                </p>
+              )}
+            </div>
+          )}
+
+          <TaskTable
+            tasks={activeList}
+            onOpen={setOpenTask}
+            selected={canBulk ? selected : undefined}
+            onToggleSelect={toggleSelect}
+            onToggleSelectAll={toggleSelectAll}
+          />
         </div>
       ) : (
         <EmptyState

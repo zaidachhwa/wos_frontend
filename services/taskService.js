@@ -28,6 +28,24 @@ export const addComment = async ({ id, text }) => {
   return data.data.task;
 };
 
+export const updateComment = async ({ id, commentId, text }) => {
+  const { data } = await axiosInstance.patch(`/tasks/${id}/comments/${commentId}`, { text });
+  return data.data.task;
+};
+
+export const deleteComment = async ({ id, commentId }) => {
+  const { data } = await axiosInstance.delete(`/tasks/${id}/comments/${commentId}`);
+  return data.data.task;
+};
+
+export const bulkUpdateTasks = async ({ ids, status, assignees }) => {
+  const payload = { ids };
+  if (status !== undefined) payload.status = status;
+  if (assignees !== undefined) payload.assignees = assignees;
+  const { data } = await axiosInstance.patch("/tasks/bulk", payload);
+  return data.data;
+};
+
 export const deleteTask = async (id) => {
   await axiosInstance.delete(`/tasks/${id}`);
 };

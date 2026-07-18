@@ -8,15 +8,22 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import Dialog from "@/components/ui/Dialog";
 import { Input, Textarea, Select, Button } from "@/components/ui/Field";
-import { createTask } from "@/services/taskService";
+import { createTask, fetchTasks } from "@/services/taskService";
 import { fetchModules } from "@/services/projectService";
+
+const REPEAT_OPTIONS = [
+  ["none", "None"],
+  ["daily", "Daily"],
+  ["weekly", "Weekly"],
+  ["monthly", "Monthly"],
+];
 
 const schema = yup.object({
   project: yup.string().required("Project is required"),
   title: yup.string().trim().required("Title is required"),
 });
 
-export default function TaskDialog({ open, onClose: onCloseProp, projects, directory }) {
+export default function TaskDialog({ open, onClose: onCloseProp, projects, directory, task }) {
   const queryClient = useQueryClient();
   const [apiError, setApiError] = useState("");
 
@@ -39,22 +46,30 @@ export default function TaskDialog({ open, onClose: onCloseProp, projects, direc
     queryFn: () => fetchModules(projectId),
     enabled: open && Boolean(projectId),
   });
+  const { data: projectTasks = [] } = useQuery({
+    queryKey: ["tasks", { project: projectId }],
+    queryFn: () => fetchTasks({ project: projectId }),
+    enabled: open && Boolean(projectId),
+  });
+  const blockableTasks = projectTasks.filter((t) => t._id !== task?._id);
 
   useEffect(() => {
     if (open) {
       reset({
-        project: "",
-        module: "",
-        title: "",
-        description: "",
-        assignees: [],
-        priority: "medium",
-        estimatedHours: "",
-        deadline: "",
-        labels: "",
+        project: task?.project || "",
+        module: task?.module || "",
+        title: task?.title || "",
+        description: task?.description || "",
+        assignees: task?.assignees?.map((a) => a._id || a) || [],
+        priority: task?.priority || "medium",
+        estimatedHours: task?.estimatedHours ?? "",
+        deadline: task?.deadline ? task.deadline.slice(0, 10) : "",
+        labels: task?.labels?.join(", ") || "",
+        blockedBy: task?.blockedBy?.map((b) => b._id || b) || [],
+        recurrence: task?.recurrence?.frequency || "none",
       });
     }
-  }, [open, reset]);
+  }, [open, reset, task]);
 
   const mutation = useMutation({
     onMutate: () => setApiError(""),
@@ -67,6 +82,7 @@ export default function TaskDialog({ open, onClose: onCloseProp, projects, direc
         labels: values.labels
           ? values.labels.split(",").map((l) => l.trim()).filter(Boolean)
           : [],
+        recurrence: values.recurrence && values.recurrence !== "none" ? { frequency: values.recurrence, interval: 1 } : null,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
@@ -126,6 +142,22 @@ export default function TaskDialog({ open, onClose: onCloseProp, projects, direc
             ))}
           </Select>
         </div>
+        {Boolean(projectId) && (
+          <div className="gap-4">
+            <Select
+              label="Blocked by"
+              multiple
+              size={Math.min(4, blockableTasks.length || 1)}
+              {...register("blockedBy")}
+            >
+              {blockableTasks.map((t) => (
+                <option key={t._id} value={t._id}>
+                  {t.title}
+                </option>
+              ))}
+            </Select>
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           <Select label="Priority" {...register("priority")}>
             {["low", "medium", "high", "critical"].map((p) => (
@@ -137,7 +169,16 @@ export default function TaskDialog({ open, onClose: onCloseProp, projects, direc
           <Input label="Est. hours" type="number" min="0" step="0.5" {...register("estimatedHours")} />
           <Input label="Deadline" type="date" {...register("deadline")} />
         </div>
-        <Input label="Labels (comma-separated)" placeholder="frontend, urgent" {...register("labels")} />
+        <div className="grid grid-cols-2 gap-4">
+          <Input label="Labels (comma-separated)" placeholder="frontend, urgent" {...register("labels")} />
+          <Select label="Repeats" {...register("recurrence")}>
+            {REPEAT_OPTIONS.map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </Select>
+        </div>
       </form>
     </Dialog>
   );

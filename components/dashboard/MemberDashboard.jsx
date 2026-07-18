@@ -15,6 +15,10 @@ export default function MemberDashboard({ data }) {
         <TaskMiniList tasks={data.todayTasks} empty="No tasks due today — check upcoming deadlines." />
       </WidgetCard>
 
+      <WidgetCard title="Yesterday (carried over)" href="/tasks">
+        <TaskMiniList tasks={data.yesterdayTasks} empty="Nothing carried over — you're all caught up." />
+      </WidgetCard>
+
       <WidgetCard title="Today's schedule" href="/calendar">
         <ScheduleList blocks={data.todaySchedule} />
       </WidgetCard>

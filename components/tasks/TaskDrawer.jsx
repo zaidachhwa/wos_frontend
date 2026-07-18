@@ -2,14 +2,21 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Send, Plus, Trash2 } from "lucide-react";
+import { Send, Plus, Trash2, Pencil, X } from "lucide-react";
 
 import Drawer from "@/components/ui/Drawer";
 import Skeleton from "@/components/ui/Skeleton";
 import Badge from "@/components/ui/Badge";
 import { Select, Button } from "@/components/ui/Field";
 import { useAuthStore } from "@/store/authStore";
-import { fetchTask, updateTask, addComment, deleteTask } from "@/services/taskService";
+import {
+  fetchTask,
+  updateTask,
+  addComment,
+  updateComment,
+  deleteComment,
+  deleteTask,
+} from "@/services/taskService";
 
 const STATUSES = ["backlog", "todo", "in_progress", "review", "testing", "completed", "blocked"];
 const PRIORITIES = ["low", "medium", "high", "critical"];
@@ -22,6 +29,8 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
   const [comment, setComment] = useState("");
   const [newSubtask, setNewSubtask] = useState("");
   const [apiError, setApiError] = useState("");
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editText, setEditText] = useState("");
 
   const open = Boolean(taskStub);
   const { data: task } = useQuery({
@@ -53,6 +62,23 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
     onError: (e) => setApiError(e.response?.data?.message || "Something went wrong"),
   });
 
+  const editComment = useMutation({
+    onMutate: () => setApiError(""),
+    mutationFn: ({ commentId, text }) => updateComment({ id: taskStub._id, commentId, text }),
+    onSuccess: () => {
+      setEditingCommentId(null);
+      invalidate();
+    },
+    onError: (e) => setApiError(e.response?.data?.message || "Something went wrong"),
+  });
+
+  const removeComment = useMutation({
+    onMutate: () => setApiError(""),
+    mutationFn: (commentId) => deleteComment({ id: taskStub._id, commentId }),
+    onSuccess: invalidate,
+    onError: (e) => setApiError(e.response?.data?.message || "Something went wrong"),
+  });
+
   const remove = useMutation({
     mutationFn: () => deleteTask(taskStub._id),
     onSuccess: () => {
@@ -79,6 +105,10 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
     setNewSubtask("");
   };
 
+  const removeSubtask = (index) => {
+    patch.mutate({ subtasks: task.subtasks.filter((_, i) => i !== index) });
+  };
+
   return (
     <Drawer open={open} onClose={onClose} title={task?.title || "Task"} wide>
       {!task ? (
@@ -91,6 +121,12 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
           {apiError && (
             <p role="alert" className="rounded-input border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
               {apiError}
+            </p>
+          )}
+
+          {task.recurrence && (
+            <p className="text-xs text-muted">
+              <Badge value={`Repeats: ${task.recurrence.frequency}`} tone="info" />
             </p>
           )}
 
@@ -145,6 +181,23 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
             <p className="mt-1 text-xs text-muted">Ctrl/Cmd-click to select multiple.</p>
           </div>
 
+          {task.blockedBy?.length > 0 && (
+            <div>
+              <p className="text-sm font-medium">Blocked by</p>
+              <div className="mt-1.5 flex flex-wrap gap-2">
+                {task.blockedBy.map((b) => (
+                  <span
+                    key={b._id}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/60 px-2.5 py-1 text-xs"
+                  >
+                    {b.title}
+                    <Badge value={b.status} />
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 gap-4 rounded-card border border-border bg-background/60 p-4 text-sm sm:grid-cols-3">
             <div>
               <p className="text-xs text-muted">Deadline</p>
@@ -181,8 +234,8 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
             </h3>
             <ul className="mt-2 space-y-1">
               {(task.subtasks || []).map((s, i) => (
-                <li key={s._id || i}>
-                  <label className="flex cursor-pointer items-center gap-2 rounded-btn px-2 py-1.5 text-sm transition-colors duration-150 hover:bg-background">
+                <li key={s._id || i} className="flex items-center gap-2 rounded-btn px-2 py-1.5 hover:bg-background">
+                  <label className="flex flex-1 cursor-pointer items-center gap-2 text-sm">
                     <input
                       type="checkbox"
                       checked={s.done}
@@ -192,6 +245,17 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
                     />
                     <span className={s.done ? "text-muted line-through" : ""}>{s.title}</span>
                   </label>
+                  {canEditStatus && (
+                    <button
+                      type="button"
+                      aria-label="Delete subtask"
+                      onClick={() => removeSubtask(i)}
+                      disabled={patch.isPending}
+                      className="text-muted transition-colors duration-150 hover:text-danger disabled:opacity-50"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
@@ -215,15 +279,80 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
           <section>
             <h3 className="text-sm font-semibold">Comments</h3>
             <ul className="mt-2 space-y-3">
-              {(task.comments || []).map((c) => (
-                <li key={c._id} className="rounded-card border border-border/60 bg-background/60 px-3 py-2">
-                  <p className="text-xs text-muted">
-                    <span className="font-medium text-primary">{c.user?.name || "Someone"}</span> ·{" "}
-                    {new Date(c.createdAt).toLocaleString()}
-                  </p>
-                  <p className="mt-1 whitespace-pre-wrap text-sm">{c.text}</p>
-                </li>
-              ))}
+              {(task.comments || []).map((c) => {
+                const isOwn = c.user?._id === me?._id;
+                const canEdit = isOwn || canManage;
+                const canDelete = isOwn || me?.role === "admin";
+                const isEditing = editingCommentId === c._id;
+                return (
+                  <li key={c._id} className="rounded-card border border-border/60 bg-background/60 px-3 py-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-xs text-muted">
+                        <span className="font-medium text-primary">{c.user?.name || "Someone"}</span> ·{" "}
+                        {new Date(c.createdAt).toLocaleString()}
+                      </p>
+                      {!isEditing && (canEdit || canDelete) && (
+                        <div className="flex shrink-0 gap-1">
+                          {canEdit && (
+                            <button
+                              type="button"
+                              aria-label="Edit comment"
+                              onClick={() => {
+                                setEditingCommentId(c._id);
+                                setEditText(c.text);
+                              }}
+                              className="text-muted transition-colors duration-150 hover:text-primary"
+                            >
+                              <Pencil size={13} />
+                            </button>
+                          )}
+                          {canDelete && (
+                            <button
+                              type="button"
+                              aria-label="Delete comment"
+                              onClick={() => {
+                                if (window.confirm("Delete this comment?")) removeComment.mutate(c._id);
+                              }}
+                              disabled={removeComment.isPending}
+                              className="text-muted transition-colors duration-150 hover:text-danger disabled:opacity-50"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    {isEditing ? (
+                      <div className="mt-1.5 space-y-2">
+                        <textarea
+                          aria-label="Edit comment text"
+                          value={editText}
+                          onChange={(e) => setEditText(e.target.value)}
+                          rows={2}
+                          className="w-full rounded-input border border-border bg-surface px-3 py-2 text-sm outline-none transition-colors duration-150 focus:border-primary"
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            variant="secondary"
+                            onClick={() => setEditingCommentId(null)}
+                            disabled={editComment.isPending}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            onClick={() => editComment.mutate({ commentId: c._id, text: editText })}
+                            disabled={!editText.trim() || editComment.isPending}
+                          >
+                            Save
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="mt-1 whitespace-pre-wrap text-sm">{c.text}</p>
+                    )}
+                  </li>
+                );
+              })}
               {!task.comments?.length && <li className="text-sm text-muted">No comments yet.</li>}
             </ul>
             <div className="mt-3 flex gap-2">

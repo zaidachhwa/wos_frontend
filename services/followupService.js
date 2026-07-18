@@ -14,3 +14,8 @@ export const reviewFollowUp = async ({ id, managerComment }) => {
   const { data } = await axiosInstance.patch(`/followups/${id}/review`, { managerComment });
   return data.data.followUp;
 };
+
+export const fetchFollowUpSuggestion = async (date) => {
+  const { data } = await axiosInstance.get("/followups/suggestions", { params: { date } });
+  return data.data;
+};

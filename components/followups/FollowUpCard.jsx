@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import Badge from "@/components/ui/Badge";
 import { Input, Textarea, Button } from "@/components/ui/Field";
-import { saveFollowUp } from "@/services/followupService";
+import { saveFollowUp, fetchFollowUpSuggestion } from "@/services/followupService";
 
 const FIELDS = {
   morning: [
@@ -30,11 +30,25 @@ export default function FollowUpCard({ type, date, followUp }) {
   const status = followUp?.status || "draft";
   const locked = status === "reviewed";
 
+  // Suggested "yesterday I completed" text from actually-completed tasks; morning-only.
+  const { data: suggestion } = useQuery({
+    queryKey: ["followup-suggestion", date],
+    queryFn: () => fetchFollowUpSuggestion(date),
+    enabled: type === "morning" && !locked,
+  });
+
   const { register, handleSubmit } = useForm({
-    values: FIELDS[type].reduce(
-      (acc, [name]) => ({ ...acc, [name]: followUp?.[type]?.[name] ?? "" }),
-      {}
-    ),
+    // keepDirtyValues (below) re-syncs untouched fields whenever this object changes,
+    // which is also what lets the suggestion prefill in once it resolves after mount
+    // without clobbering anything the user already typed or saved.
+    values: FIELDS[type].reduce((acc, [name]) => {
+      const existing = followUp?.[type]?.[name] ?? "";
+      const value =
+        type === "morning" && name === "yesterdayCompleted"
+          ? existing || suggestion?.yesterdayCompleted || ""
+          : existing;
+      return { ...acc, [name]: value };
+    }, {}),
     // Refetches must not clobber keystrokes typed while a save is in flight.
     resetOptions: { keepDirtyValues: true },
   });

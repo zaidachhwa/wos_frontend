@@ -5,8 +5,10 @@ export const fetchTeamReport = async ({ from, to }) => {
   return data.data;
 };
 
-export const fetchWorkLog = async (date) => {
-  const { data } = await axiosInstance.get("/reports/work-log", { params: date ? { date } : {} });
+export const fetchWorkLog = async ({ date, scope } = {}) => {
+  const { data } = await axiosInstance.get("/reports/work-log", {
+    params: { ...(date && { date }), ...(scope && { scope }) },
+  });
   return data.data;
 };
 

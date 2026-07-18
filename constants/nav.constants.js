@@ -17,7 +17,7 @@ export const NAV_ITEMS = [
   { href: "/tasks", label: "Tasks", icon: CheckSquare },
   { href: "/follow-ups", label: "Follow-ups", icon: MessageSquare },
   { href: "/team", label: "Team", icon: Users },
-  { href: "/reports", label: "Reports", icon: BarChart3, roles: ["admin", "manager"] },
+  { href: "/reports", label: "Reports", icon: BarChart3 },
   { href: "/notifications", label: "Notifications", icon: Bell },
   { href: "/settings", label: "Settings", icon: Settings },
 ];

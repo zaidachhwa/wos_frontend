@@ -1,4 +1,4 @@
-import { CalendarDays, Clock } from "lucide-react";
+import { CalendarDays, Clock, Lock } from "lucide-react";
 
 import Badge from "@/components/ui/Badge";
 
@@ -18,6 +18,12 @@ export default function KanbanCard({ task, onOpen }) {
           <span className="flex items-center gap-1 text-xs tabular-nums text-muted">
             <Clock size={12} />
             {task.estimatedHours}h
+          </span>
+        )}
+        {task.blockedBy?.length > 0 && (
+          <span className="flex items-center gap-1 text-xs tabular-nums text-muted" title="Blocked by other tasks">
+            <Lock size={12} />
+            {task.blockedBy.length}
           </span>
         )}
       </div>

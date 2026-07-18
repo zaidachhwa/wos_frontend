@@ -5,12 +5,26 @@ import Badge from "@/components/ui/Badge";
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString() : "—");
 const isOverdue = (t) => t.deadline && new Date(t.deadline) < new Date() && t.status !== "completed";
 
-export default function TaskTable({ tasks, onOpen }) {
+export default function TaskTable({ tasks, onOpen, selected, onToggleSelect, onToggleSelectAll }) {
+  const selectable = Boolean(selected);
+  const allSelected = selectable && tasks.length > 0 && tasks.every((t) => selected.has(t._id));
+
   return (
     <div className="overflow-x-auto rounded-card border border-border bg-surface">
       <table className="w-full text-sm">
         <thead className="sticky top-0 bg-surface">
           <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
+            {selectable && (
+              <th className="px-4 py-3 font-medium">
+                <input
+                  type="checkbox"
+                  aria-label="Select all visible tasks"
+                  checked={allSelected}
+                  onChange={(e) => onToggleSelectAll(tasks, e.target.checked)}
+                  className="accent-primary"
+                />
+              </th>
+            )}
             <th className="px-4 py-3 font-medium">Task</th>
             <th className="px-4 py-3 font-medium">Status</th>
             <th className="hidden px-4 py-3 font-medium sm:table-cell">Priority</th>
@@ -26,6 +40,17 @@ export default function TaskTable({ tasks, onOpen }) {
               onClick={() => onOpen(t)}
               className="cursor-pointer border-b border-border/60 transition-colors duration-150 last:border-0 hover:bg-background"
             >
+              {selectable && (
+                <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                  <input
+                    type="checkbox"
+                    aria-label={`Select task ${t.title}`}
+                    checked={selected.has(t._id)}
+                    onChange={() => onToggleSelect(t._id)}
+                    className="accent-primary"
+                  />
+                </td>
+              )}
               <td className="max-w-[140px] px-4 py-3 sm:max-w-xs">
                 <p className="truncate font-medium">{t.title}</p>
                 {t.labels?.length > 0 && (

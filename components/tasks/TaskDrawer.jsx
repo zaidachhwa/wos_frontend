@@ -55,7 +55,7 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
 
   if (!open) return null;
 
-  const isAssignee = task?.assignee?._id === me?._id;
+  const isAssignee = task?.assignees?.some((a) => a._id === me?._id);
   const canManage = ["admin", "manager", "sublead"].includes(me?.role);
   const canEditStatus = canManage || isAssignee;
 
@@ -85,7 +85,7 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
             </p>
           )}
 
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-4">
             <Select
               label="Status"
               value={task.status}
@@ -110,32 +110,19 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
                 </option>
               ))}
             </Select>
-            <Select
-              label="Assignee"
-              value={task.assignee?._id || ""}
-              disabled={!canManage || patch.isPending}
-              onChange={(e) => patch.mutate({ assignee: e.target.value || null })}
-            >
-              <option value="">Unassigned</option>
-              {directory.map((d) => (
-                <option key={d._id} value={d._id}>
-                  {d.name}
-                </option>
-              ))}
-            </Select>
           </div>
 
           <div>
-            <label htmlFor="collaborators" className="text-sm font-medium">
-              Collaborators
+            <label htmlFor="assignees" className="text-sm font-medium">
+              Assignees
             </label>
             <select
-              id="collaborators"
+              id="assignees"
               multiple
-              value={(task.collaborators || []).map((c) => c._id)}
+              value={(task.assignees || []).map((a) => a._id)}
               disabled={!canManage || patch.isPending}
               onChange={(e) =>
-                patch.mutate({ collaborators: Array.from(e.target.selectedOptions, (o) => o.value) })
+                patch.mutate({ assignees: Array.from(e.target.selectedOptions, (o) => o.value) })
               }
               className="mt-1 w-full rounded-input border border-border bg-surface px-3 py-2 text-sm outline-none transition-colors duration-150 focus:border-primary disabled:opacity-50"
               size={Math.min(4, directory.length || 1)}

@@ -7,8 +7,8 @@ export default function TaskMiniList({ tasks, empty = "Nothing here.", showAssig
       {tasks.slice(0, 6).map((t) => (
         <li key={t._id} className="flex items-center gap-2 rounded-btn px-2 py-1.5 text-sm transition-colors duration-150 hover:bg-background">
           <span className="min-w-0 flex-1 truncate">{t.title}</span>
-          {showAssignee && t.assignee?.name && (
-            <span className="shrink-0 text-xs text-muted">{t.assignee.name}</span>
+          {showAssignee && t.assignees?.length > 0 && (
+            <span className="shrink-0 text-xs text-muted">{t.assignees.map((a) => a.name).join(", ")}</span>
           )}
           {t.deadline && (
             <span className="shrink-0 text-xs tabular-nums text-muted">

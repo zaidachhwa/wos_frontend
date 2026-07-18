@@ -14,7 +14,7 @@ export default function TaskTable({ tasks, onOpen }) {
             <th className="px-4 py-3 font-medium">Task</th>
             <th className="px-4 py-3 font-medium">Status</th>
             <th className="hidden px-4 py-3 font-medium sm:table-cell">Priority</th>
-            <th className="hidden px-4 py-3 font-medium sm:table-cell">Assignee</th>
+            <th className="hidden px-4 py-3 font-medium sm:table-cell">Assignees</th>
             <th className="px-4 py-3 font-medium">Deadline</th>
             <th className="hidden px-4 py-3 font-medium md:table-cell">Est. hrs</th>
           </tr>
@@ -38,7 +38,9 @@ export default function TaskTable({ tasks, onOpen }) {
               <td className="hidden px-4 py-3 sm:table-cell">
                 <Badge value={t.priority} />
               </td>
-              <td className="hidden px-4 py-3 text-muted sm:table-cell">{t.assignee?.name || "Unassigned"}</td>
+              <td className="hidden px-4 py-3 text-muted sm:table-cell">
+                {t.assignees?.length ? t.assignees.map((a) => a.name).join(", ") : "Unassigned"}
+              </td>
               <td className="px-4 py-3 tabular-nums text-muted">
                 <span className="inline-flex items-center gap-1.5">
                   {fmtDate(t.deadline)}

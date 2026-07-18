@@ -36,8 +36,7 @@ export default function ModuleDialog({ open, onClose: onCloseProp, projectId, mo
       reset({
         name: module?.name || "",
         description: module?.description || "",
-        lead: module?.lead?._id || module?.lead || "",
-        collaborators: (module?.collaborators || []).map((c) => c._id || c),
+        assignees: (module?.assignees || []).map((a) => a._id || a),
         status: module?.status || "planning",
         deadline: module?.deadline ? module.deadline.slice(0, 10) : "",
       });
@@ -47,7 +46,7 @@ export default function ModuleDialog({ open, onClose: onCloseProp, projectId, mo
   const mutation = useMutation({
     onMutate: () => setApiError(""),
     mutationFn: (values) => {
-      const payload = { ...values, lead: values.lead || null, deadline: values.deadline || null };
+      const payload = { ...values, deadline: values.deadline || null };
       return isEdit
         ? updateModule({ projectId, moduleId: module._id, ...payload })
         : createModule({ projectId, ...payload });
@@ -58,8 +57,6 @@ export default function ModuleDialog({ open, onClose: onCloseProp, projectId, mo
     },
     onError: (error) => setApiError(error.response?.data?.message || "Something went wrong"),
   });
-
-  const leadOptions = directory.filter((d) => ["admin", "manager", "sublead"].includes(d.role));
 
   return (
     <Dialog
@@ -85,23 +82,13 @@ export default function ModuleDialog({ open, onClose: onCloseProp, projectId, mo
         )}
         <Input label="Name" error={errors.name?.message} {...register("name")} />
         <Textarea label="Description" {...register("description")} />
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Select label="Lead" {...register("lead")}>
-            <option value="">None</option>
-            {leadOptions.map((m) => (
-              <option key={m._id} value={m._id}>
-                {m.name}
-              </option>
-            ))}
-          </Select>
-          <Select label="Collaborators" multiple size={Math.min(4, directory.length || 1)} {...register("collaborators")}>
-            {directory.map((m) => (
-              <option key={m._id} value={m._id}>
-                {m.name}
-              </option>
-            ))}
-          </Select>
-        </div>
+        <Select label="Assignees" multiple size={Math.min(4, directory.length || 1)} {...register("assignees")}>
+          {directory.map((m) => (
+            <option key={m._id} value={m._id}>
+              {m.name}
+            </option>
+          ))}
+        </Select>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {isEdit && (
             <Select label="Status" {...register("status")}>

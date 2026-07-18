@@ -26,13 +26,18 @@ export default function KanbanCard({ task, onOpen }) {
           <CalendarDays size={12} />
           {task.deadline ? new Date(task.deadline).toLocaleDateString() : "—"}
         </span>
-        {task.assignee?.name && (
-          <span
-            title={task.assignee.name}
-            className="flex h-6 w-6 items-center justify-center rounded-full bg-background text-[10px] font-semibold uppercase"
-          >
-            {task.assignee.name.slice(0, 2)}
-          </span>
+        {task.assignees?.length > 0 && (
+          <div className="flex -space-x-1.5">
+            {task.assignees.slice(0, 3).map((a) => (
+              <span
+                key={a._id}
+                title={a.name}
+                className="flex h-6 w-6 items-center justify-center rounded-full border border-surface bg-background text-[10px] font-semibold uppercase"
+              >
+                {a.name.slice(0, 2)}
+              </span>
+            ))}
+          </div>
         )}
       </div>
     </button>

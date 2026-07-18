@@ -20,6 +20,10 @@ export const updateProject = async ({ id, ...payload }) => {
   return data.data.project;
 };
 
+export const deleteProject = async (id) => {
+  await axiosInstance.delete(`/projects/${id}`);
+};
+
 export const createModule = async ({ projectId, ...payload }) => {
   const { data } = await axiosInstance.post(`/projects/${projectId}/modules`, payload);
   return data.data.module;
@@ -33,4 +37,8 @@ export const updateModule = async ({ projectId, moduleId, ...payload }) => {
 export const fetchModules = async (projectId) => {
   const { data } = await axiosInstance.get(`/projects/${projectId}/modules`);
   return data.data.modules;
+};
+
+export const deleteModule = async ({ projectId, moduleId }) => {
+  await axiosInstance.delete(`/projects/${projectId}/modules/${moduleId}`);
 };

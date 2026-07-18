@@ -5,10 +5,12 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Trash2 } from "lucide-react";
 
 import Dialog from "@/components/ui/Dialog";
 import { Input, Textarea, Select, Button } from "@/components/ui/Field";
-import { createModule, updateModule } from "@/services/projectService";
+import { useAuthStore } from "@/store/authStore";
+import { createModule, updateModule, deleteModule } from "@/services/projectService";
 
 const schema = yup.object({
   name: yup.string().trim().required("Name is required"),
@@ -16,6 +18,7 @@ const schema = yup.object({
 
 export default function ModuleDialog({ open, onClose: onCloseProp, projectId, module, directory }) {
   const isEdit = Boolean(module);
+  const me = useAuthStore((s) => s.user);
   const queryClient = useQueryClient();
   const [apiError, setApiError] = useState("");
 
@@ -58,6 +61,15 @@ export default function ModuleDialog({ open, onClose: onCloseProp, projectId, mo
     onError: (error) => setApiError(error.response?.data?.message || "Something went wrong"),
   });
 
+  const remove = useMutation({
+    mutationFn: () => deleteModule({ projectId, moduleId: module._id }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+      onClose();
+    },
+    onError: (error) => setApiError(error.response?.data?.message || "Something went wrong"),
+  });
+
   return (
     <Dialog
       open={open}
@@ -65,6 +77,20 @@ export default function ModuleDialog({ open, onClose: onCloseProp, projectId, mo
       title={isEdit ? `Edit ${module?.name}` : "New module"}
       footer={
         <>
+          {isEdit && me?.role === "admin" && (
+            <Button
+              variant="danger"
+              className="mr-auto"
+              disabled={remove.isPending}
+              onClick={() => {
+                if (window.confirm(`Delete module "${module.name}"? Its tasks will be deleted too.`)) {
+                  remove.mutate();
+                }
+              }}
+            >
+              <Trash2 size={15} /> Delete
+            </Button>
+          )}
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>

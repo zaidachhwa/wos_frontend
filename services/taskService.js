@@ -27,3 +27,7 @@ export const addComment = async ({ id, text }) => {
   const { data } = await axiosInstance.post(`/tasks/${id}/comments`, { text });
   return data.data.task;
 };
+
+export const deleteTask = async (id) => {
+  await axiosInstance.delete(`/tasks/${id}`);
+};

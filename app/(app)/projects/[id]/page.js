@@ -1,8 +1,9 @@
 "use client";
 
 import { use, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, ClipboardList, Pencil, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { CalendarDays, ClipboardList, Pencil, Plus, Trash2 } from "lucide-react";
 
 import Badge from "@/components/ui/Badge";
 import Skeleton from "@/components/ui/Skeleton";
@@ -17,7 +18,7 @@ import TaskTable from "@/components/tasks/TaskTable";
 import TaskDrawer from "@/components/tasks/TaskDrawer";
 import TimelineView from "@/components/projects/TimelineView";
 import { useAuthStore } from "@/store/authStore";
-import { fetchProject } from "@/services/projectService";
+import { fetchProject, deleteProject } from "@/services/projectService";
 import { fetchTasks } from "@/services/taskService";
 import { fetchDirectory } from "@/services/orgService";
 import { fetchActivity } from "@/services/notificationService";
@@ -26,6 +27,8 @@ const TABS = ["overview", "modules", "tasks", "timeline", "activity"];
 
 export default function ProjectDetailsPage({ params }) {
   const { id } = use(params);
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const me = useAuthStore((s) => s.user);
   const [tab, setTab] = useState("overview");
   const [editOpen, setEditOpen] = useState(false);
@@ -47,6 +50,14 @@ export default function ProjectDetailsPage({ params }) {
 
   const canManage = ["admin", "manager"].includes(me?.role) || project?.manager?._id === me?._id;
   const canManageModules = ["admin", "manager", "sublead"].includes(me?.role);
+
+  const removeProject = useMutation({
+    mutationFn: () => deleteProject(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      router.push("/projects");
+    },
+  });
 
   if (isLoading || !project) {
     return (
@@ -75,11 +86,26 @@ export default function ProjectDetailsPage({ params }) {
               · Managed by {project.manager?.name || "—"}
             </p>
           </div>
-          {canManage && (
-            <Button variant="secondary" onClick={() => setEditOpen(true)}>
-              <Pencil size={15} /> Edit
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {canManage && (
+              <Button variant="secondary" onClick={() => setEditOpen(true)}>
+                <Pencil size={15} /> Edit
+              </Button>
+            )}
+            {me?.role === "admin" && (
+              <Button
+                variant="danger"
+                disabled={removeProject.isPending}
+                onClick={() => {
+                  if (window.confirm(`Delete project "${project.name}"? Its modules and tasks will be deleted too.`)) {
+                    removeProject.mutate();
+                  }
+                }}
+              >
+                <Trash2 size={15} /> Delete
+              </Button>
+            )}
+          </div>
         </div>
         <div className="mt-4 max-w-md">
           <ProgressBar value={project.progress} />

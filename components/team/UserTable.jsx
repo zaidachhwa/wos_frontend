@@ -1,12 +1,12 @@
 "use client";
 
-import { Pencil } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 
 import Badge from "@/components/ui/Badge";
 
 const ROLE_TONES = { admin: "danger", manager: "info", sublead: "warning", member: "muted" };
 
-export default function UserTable({ users, canEdit, onEdit }) {
+export default function UserTable({ users, canEdit, onEdit, onDelete }) {
   return (
     <div className="overflow-x-auto rounded-card border border-border bg-surface">
       <table className="w-full text-sm">
@@ -48,6 +48,15 @@ export default function UserTable({ users, canEdit, onEdit }) {
                   >
                     <Pencil size={16} />
                   </button>
+                  {u.isActive && (
+                    <button
+                      onClick={() => onDelete(u)}
+                      aria-label={`Delete ${u.name}`}
+                      className="rounded-btn p-1.5 text-muted transition-colors duration-150 hover:bg-danger/10 hover:text-danger"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
                 </td>
               )}
             </tr>

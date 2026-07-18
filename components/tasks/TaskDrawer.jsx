@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Send, Plus } from "lucide-react";
+import { Send, Plus, Trash2 } from "lucide-react";
 
 import Drawer from "@/components/ui/Drawer";
 import Skeleton from "@/components/ui/Skeleton";
 import Badge from "@/components/ui/Badge";
 import { Select, Button } from "@/components/ui/Field";
 import { useAuthStore } from "@/store/authStore";
-import { fetchTask, updateTask, addComment } from "@/services/taskService";
+import { fetchTask, updateTask, addComment, deleteTask } from "@/services/taskService";
 
 const STATUSES = ["backlog", "todo", "in_progress", "review", "testing", "completed", "blocked"];
 const PRIORITIES = ["low", "medium", "high", "critical"];
@@ -49,6 +49,15 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
     onSuccess: () => {
       setComment("");
       invalidate();
+    },
+    onError: (e) => setApiError(e.response?.data?.message || "Something went wrong"),
+  });
+
+  const remove = useMutation({
+    mutationFn: () => deleteTask(taskStub._id),
+    onSuccess: () => {
+      invalidate();
+      onClose();
     },
     onError: (e) => setApiError(e.response?.data?.message || "Something went wrong"),
   });
@@ -232,6 +241,19 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
             </div>
           </section>
 
+          {me?.role === "admin" && (
+            <Button
+              variant="danger"
+              disabled={remove.isPending}
+              onClick={() => {
+                if (window.confirm(`Delete task "${task.title}"? This cannot be undone.`)) {
+                  remove.mutate();
+                }
+              }}
+            >
+              <Trash2 size={15} /> Delete task
+            </Button>
+          )}
         </div>
       )}
     </Drawer>

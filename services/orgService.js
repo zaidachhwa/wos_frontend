@@ -20,6 +20,10 @@ export const updateUser = async ({ id, ...payload }) => {
   return data.data.user;
 };
 
+export const deleteUser = async (id) => {
+  await axiosInstance.delete(`/users/${id}`);
+};
+
 export const fetchDepartments = async () => {
   const { data } = await axiosInstance.get("/departments");
   return data.data.departments;

@@ -5,6 +5,16 @@ export const fetchProjects = async () => {
   return data.data.projects;
 };
 
+// Paginated variant for the Projects list page — fetchProjects() above stays
+// unpaginated since it's also used as a full "all projects" directory
+// (calendar, kanban, task filters).
+export const fetchProjectsPage = async ({ page, limit, status }) => {
+  const { data } = await axiosInstance.get("/projects", {
+    params: { page, limit, status: status || undefined },
+  });
+  return { projects: data.data.projects, pagination: data.data.pagination };
+};
+
 export const fetchProject = async (id) => {
   const { data } = await axiosInstance.get(`/projects/${id}`);
   return data.data.project;

@@ -7,6 +7,7 @@ import { Send, Plus, Trash2, Pencil, X } from "lucide-react";
 import Drawer from "@/components/ui/Drawer";
 import Skeleton from "@/components/ui/Skeleton";
 import Badge from "@/components/ui/Badge";
+import MultiSelect from "@/components/ui/MultiSelect";
 import { Select, Button } from "@/components/ui/Field";
 import { useAuthStore } from "@/store/authStore";
 import {
@@ -17,6 +18,7 @@ import {
   deleteComment,
   deleteTask,
 } from "@/services/taskService";
+import useToast from "@/hooks/useToast";
 
 const STATUSES = ["backlog", "todo", "in_progress", "review", "testing", "completed", "blocked"];
 const PRIORITIES = ["low", "medium", "high", "critical"];
@@ -26,6 +28,7 @@ const fmtDate = (d) => (d ? new Date(d).toLocaleDateString() : "—");
 export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) {
   const me = useAuthStore((s) => s.user);
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [comment, setComment] = useState("");
   const [newSubtask, setNewSubtask] = useState("");
   const [apiError, setApiError] = useState("");
@@ -45,11 +48,20 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
     if (task?.project) queryClient.invalidateQueries({ queryKey: ["project", String(task.project)] });
   };
 
+  const showError = (e) => {
+    const message = e.response?.data?.message || "Something went wrong";
+    setApiError(message);
+    toast.error(message);
+  };
+
+  // No success toast here — patch backs frequent inline edits (status,
+  // priority, assignees, subtask ticks) where the UI already updates in
+  // place; a toast per click would be noise, not feedback.
   const patch = useMutation({
     onMutate: () => setApiError(""),
     mutationFn: (payload) => updateTask({ id: taskStub._id, ...payload }),
     onSuccess: invalidate,
-    onError: (e) => setApiError(e.response?.data?.message || "Something went wrong"),
+    onError: showError,
   });
 
   const commentMutation = useMutation({
@@ -58,8 +70,9 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
     onSuccess: () => {
       setComment("");
       invalidate();
+      toast.success("Comment added");
     },
-    onError: (e) => setApiError(e.response?.data?.message || "Something went wrong"),
+    onError: showError,
   });
 
   const editComment = useMutation({
@@ -68,24 +81,29 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
     onSuccess: () => {
       setEditingCommentId(null);
       invalidate();
+      toast.success("Comment updated");
     },
-    onError: (e) => setApiError(e.response?.data?.message || "Something went wrong"),
+    onError: showError,
   });
 
   const removeComment = useMutation({
     onMutate: () => setApiError(""),
     mutationFn: (commentId) => deleteComment({ id: taskStub._id, commentId }),
-    onSuccess: invalidate,
-    onError: (e) => setApiError(e.response?.data?.message || "Something went wrong"),
+    onSuccess: () => {
+      invalidate();
+      toast.success("Comment deleted");
+    },
+    onError: showError,
   });
 
   const remove = useMutation({
     mutationFn: () => deleteTask(taskStub._id),
     onSuccess: () => {
       invalidate();
+      toast.success("Task deleted");
       onClose();
     },
-    onError: (e) => setApiError(e.response?.data?.message || "Something went wrong"),
+    onError: showError,
   });
 
   if (!open) return null;
@@ -157,29 +175,14 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
             </Select>
           </div>
 
-          <div>
-            <label htmlFor="assignees" className="text-sm font-medium">
-              Assignees
-            </label>
-            <select
-              id="assignees"
-              multiple
-              value={(task.assignees || []).map((a) => a._id)}
-              disabled={!canManage || patch.isPending}
-              onChange={(e) =>
-                patch.mutate({ assignees: Array.from(e.target.selectedOptions, (o) => o.value) })
-              }
-              className="mt-1 w-full rounded-input border border-border bg-surface px-3 py-2 text-sm outline-none transition-colors duration-150 focus:border-primary disabled:opacity-50"
-              size={Math.min(4, directory.length || 1)}
-            >
-              {directory.map((d) => (
-                <option key={d._id} value={d._id}>
-                  {d.name}
-                </option>
-              ))}
-            </select>
-            <p className="mt-1 text-xs text-muted">Ctrl/Cmd-click to select multiple.</p>
-          </div>
+          <MultiSelect
+            label="Assignees"
+            items={directory}
+            value={(task.assignees || []).map((a) => a._id)}
+            disabled={!canManage || patch.isPending}
+            onChange={(assignees) => patch.mutate({ assignees })}
+            placeholder="Select assignees…"
+          />
 
           {task.blockedBy?.length > 0 && (
             <div>

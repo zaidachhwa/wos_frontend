@@ -10,6 +10,7 @@ import EmptyState from "@/components/ui/EmptyState";
 import Skeleton from "@/components/ui/Skeleton";
 import { Input, Select, Textarea, Button } from "@/components/ui/Field";
 import { fetchFollowUps, reviewFollowUp } from "@/services/followupService";
+import useToast from "@/hooks/useToast";
 
 const FIELD_LABELS = {
   yesterdayCompleted: "Yesterday completed",
@@ -25,6 +26,7 @@ const FIELD_LABELS = {
 
 export default function TeamFollowUps({ today, canReview }) {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [date, setDate] = useState(today);
   const [type, setType] = useState("morning");
   const [reviewing, setReviewing] = useState(null);
@@ -41,10 +43,15 @@ export default function TeamFollowUps({ today, canReview }) {
     mutationFn: () => reviewFollowUp({ id: reviewing._id, managerComment: comment }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["followups"] });
+      toast.success("Follow-up reviewed");
       setReviewing(null);
       setComment("");
     },
-    onError: (error) => setApiError(error.response?.data?.message || "Something went wrong"),
+    onError: (error) => {
+      const message = error.response?.data?.message || "Something went wrong";
+      setApiError(message);
+      toast.error(message);
+    },
   });
 
   return (

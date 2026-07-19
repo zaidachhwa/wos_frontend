@@ -205,6 +205,22 @@ body {
   font-size: 0.8125rem;
 }
 
+/* Liquid-glass dressing for modal/drawer chrome (see hooks/useLiquidGlass.js).
+   Translucent so backdrop-filter has something to refract; tokens via
+   color-mix so light/dark both work with one rule, no override block. */
+.glass-panel {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--surface) 88%, transparent),
+    color-mix(in srgb, var(--surface) 72%, transparent)
+  );
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.16),
+    inset 0 1px 1px color-mix(in srgb, white 45%, transparent),
+    inset 0 -8px 20px color-mix(in srgb, white 5%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--border) 80%, transparent);
+}
+
 /* Theme toggle icons: CSS picks the icon so SSR and client always agree. */
 :root[data-theme="dark"] .theme-dark-hidden {
   display: none;

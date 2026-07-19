@@ -9,6 +9,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Dialog from "@/components/ui/Dialog";
 import { Input, Textarea, Select, Button } from "@/components/ui/Field";
 import { createProject, updateProject } from "@/services/projectService";
+import useToast from "@/hooks/useToast";
 
 const schema = yup.object({
   name: yup.string().trim().required("Name is required"),
@@ -20,6 +21,7 @@ const schema = yup.object({
 function ProjectForm({ onClose, project, directory }) {
   const isEdit = Boolean(project);
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [apiError, setApiError] = useState("");
   const [memberIds, setMemberIds] = useState(() => (project?.members || []).map((m) => m._id || m));
 
@@ -54,9 +56,14 @@ function ProjectForm({ onClose, project, directory }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       if (isEdit) queryClient.invalidateQueries({ queryKey: ["project", project._id] });
+      toast.success(isEdit ? "Project updated" : "Project created");
       onClose();
     },
-    onError: (error) => setApiError(error.response?.data?.message || "Something went wrong"),
+    onError: (error) => {
+      const message = error.response?.data?.message || "Something went wrong";
+      setApiError(message);
+      toast.error(message);
+    },
   });
 
   const toggleMember = (id) =>

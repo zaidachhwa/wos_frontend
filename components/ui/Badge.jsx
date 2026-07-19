@@ -30,6 +30,10 @@ const VALUE_TONES = {
   submitted: "info",
   reviewed: "success",
   missing: "danger",
+  // task approval status
+  pending: "warning",
+  approved: "success",
+  rejected: "danger",
 };
 
 export default function Badge({ value, tone }) {

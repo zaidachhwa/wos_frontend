@@ -1,9 +1,14 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { X } from "lucide-react";
 
+import useLiquidGlass from "@/hooks/useLiquidGlass";
+
 export default function Drawer({ open, onClose, title, children, wide = false }) {
+  const panelRef = useRef(null);
+  useLiquidGlass(panelRef, { scale: -60, chroma: 4, blur: 6, saturate: 1.4 });
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => e.key === "Escape" && onClose();
@@ -21,9 +26,10 @@ export default function Drawer({ open, onClose, title, children, wide = false })
         aria-hidden="true"
       />
       <aside
+        ref={panelRef}
         role="dialog"
         aria-label={title}
-        className={`absolute right-0 top-0 flex h-full w-full flex-col border-l border-border bg-surface shadow-lg animate-[slideInRight_200ms_ease-out] ${
+        className={`glass-panel absolute right-0 top-0 flex h-full w-full flex-col border-l border-border animate-[slideInRight_200ms_ease-out] ${
           wide ? "max-w-2xl" : "max-w-md"
         }`}
       >

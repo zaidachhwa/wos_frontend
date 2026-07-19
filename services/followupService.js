@@ -5,6 +5,13 @@ export const fetchFollowUps = async (params = {}) => {
   return data.data.followUps;
 };
 
+// Paginated variant for the "Previous follow-ups" history list — fetchFollowUps
+// above stays as-is for the other (already-bounded) own/team lookups.
+export const fetchFollowUpsPage = async ({ page, limit }) => {
+  const { data } = await axiosInstance.get("/followups", { params: { page, limit } });
+  return { followUps: data.data.followUps, pagination: data.data.pagination };
+};
+
 export const saveFollowUp = async (payload) => {
   const { data } = await axiosInstance.post("/followups", payload);
   return data.data.followUp;

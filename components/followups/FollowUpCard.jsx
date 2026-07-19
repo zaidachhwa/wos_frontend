@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Badge from "@/components/ui/Badge";
 import { Input, Textarea, Button } from "@/components/ui/Field";
 import { saveFollowUp, fetchFollowUpSuggestion } from "@/services/followupService";
+import useToast from "@/hooks/useToast";
 
 const FIELDS = {
   morning: [
@@ -26,6 +27,7 @@ const FIELDS = {
 
 export default function FollowUpCard({ type, date, followUp }) {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [apiError, setApiError] = useState("");
   const status = followUp?.status || "draft";
   const locked = status === "reviewed";
@@ -61,8 +63,15 @@ export default function FollowUpCard({ type, date, followUp }) {
       data[hoursField] = data[hoursField] === "" ? undefined : Number(data[hoursField]);
       return saveFollowUp({ date, type, data, submit });
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["followups"] }),
-    onError: (error) => setApiError(error.response?.data?.message || "Something went wrong"),
+    onSuccess: (_data, { submit }) => {
+      queryClient.invalidateQueries({ queryKey: ["followups"] });
+      toast.success(submit ? "Follow-up submitted" : "Draft saved");
+    },
+    onError: (error) => {
+      const message = error.response?.data?.message || "Something went wrong";
+      setApiError(message);
+      toast.error(message);
+    },
   });
 
   return (

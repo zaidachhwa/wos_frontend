@@ -23,8 +23,18 @@ export default function ActivityFeed({ activities = [], emptyText = "No activity
           <span className="shrink-0 text-xs tabular-nums text-muted">{timeAgo(a.createdAt)}</span>
           <span>
             <span className="font-medium">{a.actor?.name || "Someone"}</span>{" "}
-            <span className="text-muted">{a.action.replace(/_/g, " ")}</span>
+            <span className="text-muted">{a.action.replace(/_/g, " ")}</span>{" "}
+            <span className="text-muted">{a.entityType}</span>
             {a.meta?.title && <span className="text-muted"> — “{a.meta.title}”</span>}
+            {a.meta?.statusFrom && a.meta?.statusTo && (
+              <span className="text-muted">
+                {" "}
+                ({a.meta.statusFrom.replace(/_/g, " ")} → {a.meta.statusTo.replace(/_/g, " ")})
+              </span>
+            )}
+            {a.meta?.assigneesAdded && (
+              <span className="text-muted"> · +{a.meta.assigneesAdded} assignee{a.meta.assigneesAdded > 1 ? "s" : ""}</span>
+            )}
           </span>
         </li>
       ))}

@@ -3,9 +3,12 @@
 import { useEffect, useRef } from "react";
 import { X } from "lucide-react";
 
+import useLiquidGlass from "@/hooks/useLiquidGlass";
+
 // Native <dialog> gives focus trap + ESC-to-close for free.
 export default function Dialog({ open, onClose, title, children, footer }) {
   const ref = useRef(null);
+  useLiquidGlass(ref, { scale: -60, chroma: 4, blur: 6, saturate: 1.4 });
 
   useEffect(() => {
     const dialog = ref.current;
@@ -18,7 +21,7 @@ export default function Dialog({ open, onClose, title, children, footer }) {
     <dialog
       ref={ref}
       onClose={onClose}
-      className="m-auto w-[calc(100%-2rem)] max-w-[720px] rounded-dialog border border-border bg-surface p-0 text-primary shadow-lg backdrop:bg-black/30"
+      className="glass-panel m-auto w-[calc(100%-2rem)] max-w-[720px] rounded-dialog border border-border p-0 text-primary backdrop:bg-black/30"
     >
       <div className="flex items-center justify-between border-b border-border px-6 py-4">
         <h2 className="text-lg font-semibold tracking-tight">{title}</h2>

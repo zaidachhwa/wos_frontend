@@ -7,8 +7,11 @@ import FollowUpCard from "@/components/followups/FollowUpCard";
 import FollowUpHistory from "@/components/followups/FollowUpHistory";
 import TeamFollowUps from "@/components/followups/TeamFollowUps";
 import Skeleton from "@/components/ui/Skeleton";
+import Pagination from "@/components/ui/Pagination";
 import { useAuthStore } from "@/store/authStore";
-import { fetchFollowUps } from "@/services/followupService";
+import { fetchFollowUps, fetchFollowUpsPage } from "@/services/followupService";
+
+const HISTORY_PAGE_SIZE = 10;
 
 const localDay = () => {
   const d = new Date();
@@ -21,6 +24,7 @@ export default function FollowUpsPage() {
   const hasTeamView = ["admin", "manager", "sublead"].includes(me?.role);
   const canReview = ["admin", "manager"].includes(me?.role);
   const [tab, setTab] = useState("mine");
+  const [historyPage, setHistoryPage] = useState(1);
   const today = localDay();
 
   const { data: own, isLoading } = useQuery({
@@ -28,13 +32,14 @@ export default function FollowUpsPage() {
     queryFn: () => fetchFollowUps({ date: today }),
   });
   const { data: history } = useQuery({
-    queryKey: ["followups", "own", "history"],
-    queryFn: () => fetchFollowUps({}),
+    queryKey: ["followups", "own", "history", historyPage],
+    queryFn: () => fetchFollowUpsPage({ page: historyPage, limit: HISTORY_PAGE_SIZE }),
     enabled: tab === "mine",
+    placeholderData: (prev) => prev,
   });
 
   const byType = (type) => (own || []).find((f) => f.type === type);
-  const pastFollowUps = (history || []).filter((f) => f.date !== today && f.status !== "draft");
+  const pastFollowUps = (history?.followUps || []).filter((f) => f.date !== today && f.status !== "draft");
 
   return (
     <div className="mx-auto max-w-[1600px] space-y-6">
@@ -72,6 +77,12 @@ export default function FollowUpsPage() {
             <div className="mt-6">
               <h3 className="mb-3 text-base font-semibold tracking-tight">Previous follow-ups</h3>
               <FollowUpHistory followUps={pastFollowUps} />
+              <Pagination
+                page={history?.pagination?.page || historyPage}
+                totalPages={history?.pagination?.totalPages || 1}
+                total={history?.pagination?.total}
+                onPageChange={setHistoryPage}
+              />
             </div>
           </>
         )

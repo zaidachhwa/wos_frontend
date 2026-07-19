@@ -9,13 +9,16 @@ import { CheckSquare, Columns3, Plus } from "lucide-react";
 import TaskTable from "@/components/tasks/TaskTable";
 import TaskDrawer from "@/components/tasks/TaskDrawer";
 import TaskDialog from "@/components/tasks/TaskDialog";
+import ApprovalQueue from "@/components/tasks/ApprovalQueue";
 import EmptyState from "@/components/ui/EmptyState";
 import Skeleton from "@/components/ui/Skeleton";
+import MultiSelect from "@/components/ui/MultiSelect";
 import { Button } from "@/components/ui/Field";
 import { useAuthStore } from "@/store/authStore";
 import { fetchTasks, bulkUpdateTasks } from "@/services/taskService";
 import { fetchProjects } from "@/services/projectService";
 import { fetchDirectory } from "@/services/orgService";
+import useToast from "@/hooks/useToast";
 
 const STATUSES = ["backlog", "todo", "in_progress", "review", "testing", "completed", "blocked"];
 
@@ -38,9 +41,11 @@ const BUCKET_ORDER = ["Overdue", "Today", "This week", "Later", "No deadline"];
 
 export default function TasksPage() {
   const me = useAuthStore((s) => s.user);
-  const canCreate = ["admin", "manager", "sublead"].includes(me?.role);
-  const canBulk = canCreate;
+  const canCreate = ["admin", "manager", "sublead", "member"].includes(me?.role);
+  const canBulk = ["admin", "manager", "sublead"].includes(me?.role);
+  const canApprove = ["admin", "manager"].includes(me?.role);
   const queryClient = useQueryClient();
+  const toast = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [scope, setScope] = useState("me");
@@ -67,6 +72,7 @@ export default function TasksPage() {
   const { data: tasks, isLoading } = useQuery({
     queryKey: ["tasks", filters],
     queryFn: () => fetchTasks(filters),
+    enabled: scope !== "approvals",
   });
   const { data: projects = [] } = useQuery({ queryKey: ["projects"], queryFn: fetchProjects });
   const { data: directory = [] } = useQuery({ queryKey: ["directory"], queryFn: fetchDirectory });
@@ -112,10 +118,12 @@ export default function TasksPage() {
         status: bulkStatus || undefined,
         assignees: bulkAssignees.length ? bulkAssignees : undefined,
       }),
-    onSuccess: () => {
+    onSuccess: (data) => {
       clearSelection();
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      toast.success(`${data.updated} task${data.updated === 1 ? "" : "s"} updated`);
     },
+    onError: (error) => toast.error(error.response?.data?.message || "Something went wrong"),
   });
 
   return (
@@ -126,6 +134,7 @@ export default function TasksPage() {
             {[
               ["me", "My tasks"],
               ["all", "All visible"],
+              ...(canApprove ? [["approvals", "Approvals"]] : []),
             ].map(([key, label]) => (
               <button
                 key={key}
@@ -138,39 +147,43 @@ export default function TasksPage() {
               </button>
             ))}
           </div>
-          <select
-            aria-label="Filter by status"
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            className="rounded-input border border-border bg-surface px-3 py-2 text-sm outline-none transition-colors duration-150 focus:border-primary"
-          >
-            <option value="">All statuses</option>
-            {STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {s.replace("_", " ")}
-              </option>
-            ))}
-          </select>
-          <select
-            aria-label="Filter by project"
-            value={projectFilter}
-            onChange={(e) => setProjectFilter(e.target.value)}
-            className="rounded-input border border-border bg-surface px-3 py-2 text-sm outline-none transition-colors duration-150 focus:border-primary"
-          >
-            <option value="">All projects</option>
-            {projects.map((p) => (
-              <option key={p._id} value={p._id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-          <input
-            aria-label="Search tasks"
-            placeholder="Search tasks…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-48 rounded-input border border-border bg-surface px-3 py-2 text-sm outline-none transition-colors duration-150 focus:border-primary"
-          />
+          {scope !== "approvals" && (
+            <>
+              <select
+                aria-label="Filter by status"
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                className="rounded-input border border-border bg-surface px-3 py-2 text-sm outline-none transition-colors duration-150 focus:border-primary"
+              >
+                <option value="">All statuses</option>
+                {STATUSES.map((s) => (
+                  <option key={s} value={s}>
+                    {s.replace("_", " ")}
+                  </option>
+                ))}
+              </select>
+              <select
+                aria-label="Filter by project"
+                value={projectFilter}
+                onChange={(e) => setProjectFilter(e.target.value)}
+                className="rounded-input border border-border bg-surface px-3 py-2 text-sm outline-none transition-colors duration-150 focus:border-primary"
+              >
+                <option value="">All projects</option>
+                {projects.map((p) => (
+                  <option key={p._id} value={p._id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+              <input
+                aria-label="Search tasks"
+                placeholder="Search tasks…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-48 rounded-input border border-border bg-surface px-3 py-2 text-sm outline-none transition-colors duration-150 focus:border-primary"
+              />
+            </>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <Link
@@ -187,7 +200,9 @@ export default function TasksPage() {
         </div>
       </div>
 
-      {isLoading ? (
+      {scope === "approvals" ? (
+        <ApprovalQueue />
+      ) : isLoading ? (
         <Skeleton className="h-64 w-full rounded-card" />
       ) : tasks?.length ? (
         <div className="space-y-4">
@@ -221,20 +236,15 @@ export default function TasksPage() {
                   </option>
                 ))}
               </select>
-              <select
-                aria-label="Bulk set assignees"
-                multiple
-                value={bulkAssignees}
-                onChange={(e) => setBulkAssignees(Array.from(e.target.selectedOptions, (o) => o.value))}
-                className="rounded-input border border-border bg-surface px-3 py-2 text-sm outline-none transition-colors duration-150 focus:border-primary"
-                size={Math.min(4, directory.length || 1)}
-              >
-                {directory.map((d) => (
-                  <option key={d._id} value={d._id}>
-                    {d.name}
-                  </option>
-                ))}
-              </select>
+              <div className="w-56">
+                <MultiSelect
+                  ariaLabel="Bulk set assignees"
+                  items={directory}
+                  value={bulkAssignees}
+                  onChange={setBulkAssignees}
+                  placeholder="Assignees unchanged"
+                />
+              </div>
               <Button
                 onClick={() => bulkMutation.mutate()}
                 disabled={bulkMutation.isPending || (!bulkStatus && !bulkAssignees.length)}

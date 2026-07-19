@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -9,8 +9,10 @@ import { Trash2 } from "lucide-react";
 
 import Dialog from "@/components/ui/Dialog";
 import { Input, Textarea, Select, Button } from "@/components/ui/Field";
+import MultiSelect from "@/components/ui/MultiSelect";
 import { useAuthStore } from "@/store/authStore";
 import { createModule, updateModule, deleteModule } from "@/services/projectService";
+import useToast from "@/hooks/useToast";
 
 const schema = yup.object({
   name: yup.string().trim().required("Name is required"),
@@ -20,6 +22,7 @@ export default function ModuleDialog({ open, onClose: onCloseProp, projectId, mo
   const isEdit = Boolean(module);
   const me = useAuthStore((s) => s.user);
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [apiError, setApiError] = useState("");
 
   const onClose = () => {
@@ -31,6 +34,7 @@ export default function ModuleDialog({ open, onClose: onCloseProp, projectId, mo
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors, isSubmitting },
   } = useForm({ resolver: yupResolver(schema) });
 
@@ -56,18 +60,28 @@ export default function ModuleDialog({ open, onClose: onCloseProp, projectId, mo
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+      toast.success(isEdit ? "Module updated" : "Module created");
       onClose();
     },
-    onError: (error) => setApiError(error.response?.data?.message || "Something went wrong"),
+    onError: (error) => {
+      const message = error.response?.data?.message || "Something went wrong";
+      setApiError(message);
+      toast.error(message);
+    },
   });
 
   const remove = useMutation({
     mutationFn: () => deleteModule({ projectId, moduleId: module._id }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+      toast.success("Module deleted");
       onClose();
     },
-    onError: (error) => setApiError(error.response?.data?.message || "Something went wrong"),
+    onError: (error) => {
+      const message = error.response?.data?.message || "Something went wrong";
+      setApiError(message);
+      toast.error(message);
+    },
   });
 
   return (
@@ -108,13 +122,14 @@ export default function ModuleDialog({ open, onClose: onCloseProp, projectId, mo
         )}
         <Input label="Name" error={errors.name?.message} {...register("name")} />
         <Textarea label="Description" {...register("description")} />
-        <Select label="Assignees" multiple size={Math.min(4, directory.length || 1)} {...register("assignees")}>
-          {directory.map((m) => (
-            <option key={m._id} value={m._id}>
-              {m.name}
-            </option>
-          ))}
-        </Select>
+        <Controller
+          name="assignees"
+          control={control}
+          defaultValue={[]}
+          render={({ field }) => (
+            <MultiSelect label="Assignees" items={directory} value={field.value} onChange={field.onChange} placeholder="Select assignees…" />
+          )}
+        />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {isEdit && (
             <Select label="Status" {...register("status")}>

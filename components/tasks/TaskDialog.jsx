@@ -1,15 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import Dialog from "@/components/ui/Dialog";
 import { Input, Textarea, Select, Button } from "@/components/ui/Field";
+import MultiSelect from "@/components/ui/MultiSelect";
 import { createTask, fetchTasks } from "@/services/taskService";
 import { fetchModules } from "@/services/projectService";
+import { useAuthStore } from "@/store/authStore";
+import useToast from "@/hooks/useToast";
 
 const REPEAT_OPTIONS = [
   ["none", "None"],
@@ -24,7 +27,10 @@ const schema = yup.object({
 });
 
 export default function TaskDialog({ open, onClose: onCloseProp, projects, directory, task }) {
+  const me = useAuthStore((s) => s.user);
+  const isMember = me?.role === "member";
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [apiError, setApiError] = useState("");
 
   const onClose = () => {
@@ -37,6 +43,7 @@ export default function TaskDialog({ open, onClose: onCloseProp, projects, direc
     handleSubmit,
     reset,
     watch,
+    control,
     formState: { errors, isSubmitting },
   } = useForm({ resolver: yupResolver(schema) });
 
@@ -86,9 +93,14 @@ export default function TaskDialog({ open, onClose: onCloseProp, projects, direc
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      toast.success(isMember ? "Task submitted for approval" : "Task created");
       onClose();
     },
-    onError: (error) => setApiError(error.response?.data?.message || "Something went wrong"),
+    onError: (error) => {
+      const message = error.response?.data?.message || "Something went wrong";
+      setApiError(message);
+      toast.error(message);
+    },
   });
 
   return (
@@ -133,30 +145,37 @@ export default function TaskDialog({ open, onClose: onCloseProp, projects, direc
         </div>
         <Input label="Title" error={errors.title?.message} {...register("title")} />
         <Textarea label="Description" {...register("description")} />
-        <div className="gap-4">
-          <Select label="Assignees" multiple size={Math.min(4, directory.length || 1)} {...register("assignees")}>
-            {directory.map((d) => (
-              <option key={d._id} value={d._id}>
-                {d.name}
-              </option>
-            ))}
-          </Select>
-        </div>
-        {Boolean(projectId) && (
-          <div className="gap-4">
-            <Select
-              label="Blocked by"
-              multiple
-              size={Math.min(4, blockableTasks.length || 1)}
-              {...register("blockedBy")}
-            >
-              {blockableTasks.map((t) => (
-                <option key={t._id} value={t._id}>
-                  {t.title}
-                </option>
-              ))}
-            </Select>
-          </div>
+        {isMember ? (
+          <p className="rounded-input border border-warning/30 bg-warning/5 px-3 py-2 text-sm text-warning">
+            This task will be assigned to you and needs approval from your manager before you can start it.
+          </p>
+        ) : (
+          <>
+            <Controller
+              name="assignees"
+              control={control}
+              defaultValue={[]}
+              render={({ field }) => (
+                <MultiSelect label="Assignees" items={directory} value={field.value} onChange={field.onChange} placeholder="Select assignees…" />
+              )}
+            />
+            {Boolean(projectId) && (
+              <Controller
+                name="blockedBy"
+                control={control}
+                defaultValue={[]}
+                render={({ field }) => (
+                  <MultiSelect
+                    label="Blocked by"
+                    items={blockableTasks.map((t) => ({ _id: t._id, name: t.title }))}
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="None"
+                  />
+                )}
+              />
+            )}
+          </>
         )}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           <Select label="Priority" {...register("priority")}>

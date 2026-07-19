@@ -49,3 +49,13 @@ export const bulkUpdateTasks = async ({ ids, status, assignees }) => {
 export const deleteTask = async (id) => {
   await axiosInstance.delete(`/tasks/${id}`);
 };
+
+export const approveTask = async ({ id, ...payload }) => {
+  const { data } = await axiosInstance.patch(`/tasks/${id}/approve`, payload);
+  return data.data.task;
+};
+
+export const rejectTask = async ({ id, approvalComment }) => {
+  const { data } = await axiosInstance.patch(`/tasks/${id}/reject`, { approvalComment });
+  return data.data.task;
+};

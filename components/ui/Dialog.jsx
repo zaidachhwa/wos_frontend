@@ -8,14 +8,19 @@ import useLiquidGlass from "@/hooks/useLiquidGlass";
 // Native <dialog> gives focus trap + ESC-to-close for free.
 export default function Dialog({ open, onClose, title, children, footer }) {
   const ref = useRef(null);
-  useLiquidGlass(ref, { scale: -60, chroma: 4, blur: 6, saturate: 1.4 });
+  const glassRef = useLiquidGlass(ref, { scale: -90, chroma: 6, blur: 10, saturate: 1.5 });
 
   useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
-    if (open && !dialog.open) dialog.showModal();
+    if (open && !dialog.open) {
+      dialog.showModal();
+      // <dialog> has no layout box until shown — force the glass map to
+      // regenerate now instead of waiting on the debounced ResizeObserver.
+      glassRef.current?.refresh();
+    }
     if (!open && dialog.open) dialog.close();
-  }, [open]);
+  }, [open, glassRef]);
 
   return (
     <dialog

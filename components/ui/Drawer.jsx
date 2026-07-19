@@ -7,7 +7,7 @@ import useLiquidGlass from "@/hooks/useLiquidGlass";
 
 export default function Drawer({ open, onClose, title, children, wide = false }) {
   const panelRef = useRef(null);
-  useLiquidGlass(panelRef, { scale: -60, chroma: 4, blur: 6, saturate: 1.4 });
+  useLiquidGlass(panelRef, { scale: -90, chroma: 6, blur: 10, saturate: 1.5 });
 
   useEffect(() => {
     if (!open) return;

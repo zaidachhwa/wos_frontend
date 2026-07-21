@@ -228,3 +228,22 @@ body {
 :root:not([data-theme="dark"]) .theme-dark-only {
   display: none;
 }
+
+/* Login branding panel: background must exactly match whichever logo
+   asset is showing (logo.png is pure #000, logo-light.png is #fff) so
+   there's no visible seam around the square PNG. Swaps with data-theme,
+   same convention as the theme-toggle icons above. */
+.login-brand-panel {
+  background: #000;
+}
+:root:not([data-theme="dark"]) .login-brand-panel {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+}
+
+.login-wordmark {
+  color: #ffffff;
+}
+:root:not([data-theme="dark"]) .login-wordmark {
+  color: var(--primary);
+}

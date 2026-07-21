@@ -12,7 +12,10 @@ export default function ProjectCard({ project }) {
     >
       <div className="flex items-start justify-between gap-2">
         <p className="truncate text-base font-semibold tracking-tight">{project.name}</p>
-        <Badge value={project.status} />
+        <div className="flex shrink-0 gap-1.5">
+          <Badge value={project.type || "internal"} />
+          <Badge value={project.status} />
+        </div>
       </div>
       <p className="mt-1 line-clamp-2 min-h-10 text-sm text-muted">{project.description || "No description."}</p>
       <div className="mt-4">

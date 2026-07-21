@@ -25,6 +25,10 @@ const VALUE_TONES = {
   active: "info",
   on_hold: "warning",
   cancelled: "danger",
+  // project type
+  internal: "muted",
+  client: "info",
+  product: "success",
   // follow-up status
   draft: "muted",
   submitted: "info",

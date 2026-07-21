@@ -43,7 +43,7 @@ export default function ManagerDashboard({ data }) {
         <TaskMiniList tasks={data.upcomingDeadlines} empty="No deadlines this week." showAssignee />
       </WidgetCard>
 
-      <WidgetCard title="Blocked" href="/kanban">
+      <WidgetCard title="Blocked" href="/tasks/kanban">
         <TaskMiniList tasks={data.blockedTasks} empty="Nobody is blocked." showAssignee />
       </WidgetCard>
 

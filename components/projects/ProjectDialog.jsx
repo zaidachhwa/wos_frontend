@@ -10,10 +10,12 @@ import Dialog from "@/components/ui/Dialog";
 import { Input, Textarea, Select, Button } from "@/components/ui/Field";
 import { createProject, updateProject } from "@/services/projectService";
 import useToast from "@/hooks/useToast";
+import { PROJECT_STATUSES, PROJECT_TYPES } from "@/constants/project.constants";
 
 const schema = yup.object({
   name: yup.string().trim().required("Name is required"),
   manager: yup.string().required("Manager is required"),
+  type: yup.string().required("Type is required"),
 });
 
 // Form state lives in a component that mounts fresh on every dialog open,
@@ -36,6 +38,7 @@ function ProjectForm({ onClose, project, directory }) {
       description: project?.description || "",
       manager: project?.manager?._id || "",
       priority: project?.priority || "medium",
+      type: project?.type || "internal",
       status: project?.status || "planning",
       startDate: project?.startDate ? project.startDate.slice(0, 10) : "",
       deadline: project?.deadline ? project.deadline.slice(0, 10) : "",
@@ -98,11 +101,18 @@ function ProjectForm({ onClose, project, directory }) {
             </option>
           ))}
         </Select>
+        <Select label="Type" error={errors.type?.message} {...register("type")}>
+          {PROJECT_TYPES.map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </Select>
         {isEdit && (
           <Select label="Status" {...register("status")}>
-            {["planning", "active", "on_hold", "completed", "cancelled"].map((s) => (
-              <option key={s} value={s}>
-                {s.replace("_", " ")}
+            {PROJECT_STATUSES.map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
               </option>
             ))}
           </Select>

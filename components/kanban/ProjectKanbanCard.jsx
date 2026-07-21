@@ -12,6 +12,7 @@ export default function ProjectKanbanCard({ project }) {
     >
       <p className="truncate text-sm font-medium leading-snug">{project.name}</p>
       <div className="mt-3 flex items-center gap-2">
+        <Badge value={project.type || "internal"} />
         <Badge value={project.priority} />
       </div>
       {project.progress != null && (

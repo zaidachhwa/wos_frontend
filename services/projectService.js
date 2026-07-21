@@ -8,9 +8,9 @@ export const fetchProjects = async () => {
 // Paginated variant for the Projects list page — fetchProjects() above stays
 // unpaginated since it's also used as a full "all projects" directory
 // (calendar, kanban, task filters).
-export const fetchProjectsPage = async ({ page, limit, status }) => {
+export const fetchProjectsPage = async ({ page, limit, status, type, search }) => {
   const { data } = await axiosInstance.get("/projects", {
-    params: { page, limit, status: status || undefined },
+    params: { page, limit, status: status || undefined, type: type || undefined, search: search || undefined },
   });
   return { projects: data.data.projects, pagination: data.data.pagination };
 };

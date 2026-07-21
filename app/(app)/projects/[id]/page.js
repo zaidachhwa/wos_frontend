@@ -3,7 +3,8 @@
 import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, ClipboardList, Pencil, Plus, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { CalendarDays, ClipboardList, Columns3, Pencil, Plus, Trash2 } from "lucide-react";
 
 import Badge from "@/components/ui/Badge";
 import Skeleton from "@/components/ui/Skeleton";
@@ -163,13 +164,19 @@ export default function ProjectDetailsPage({ params }) {
 
       {tab === "modules" && (
         <div className="space-y-4">
-          {canManageModules && (
-            <div className="flex justify-end">
+          <div className="flex items-center justify-between gap-2">
+            <Link
+              href={`/projects/modules-kanban?project=${project._id}`}
+              className="flex items-center gap-1.5 rounded-btn border border-border bg-surface px-3 py-2 text-sm font-medium text-muted transition-colors duration-150 hover:text-primary"
+            >
+              <Columns3 size={15} /> Board
+            </Link>
+            {canManageModules && (
               <Button onClick={() => setModuleDialog({ open: true, module: null })}>
                 <Plus size={16} /> New module
               </Button>
-            </div>
-          )}
+            )}
+          </div>
           {project.modules?.length ? (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
               {project.modules.map((m) => (

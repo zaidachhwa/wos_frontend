@@ -30,10 +30,16 @@ export default function TaskKanbanPage() {
 
   const [scope, setScope] = useState("me");
   const [projectFilter, setProjectFilter] = useState("");
+  const [dateFilter, setDateFilter] = useState("");
   const [openTask, setOpenTask] = useState(null);
   const [error, setError] = useState("");
 
-  const filters = { assignee: scope === "me" ? "me" : undefined, project: projectFilter || undefined };
+  const filters = {
+    assignee: scope === "me" ? "me" : undefined,
+    project: projectFilter || undefined,
+    dueAfter: dateFilter ? `${dateFilter}T00:00:00.000Z` : undefined,
+    dueBefore: dateFilter ? `${dateFilter}T23:59:59.999Z` : undefined,
+  };
   const queryKey = ["tasks", "kanban", filters];
   const { data: tasks, isLoading } = useQuery({ queryKey, queryFn: () => fetchTasks(filters) });
 
@@ -94,6 +100,22 @@ export default function TaskKanbanPage() {
             </option>
           ))}
         </select>
+        <input
+          aria-label="Filter by due date"
+          type="date"
+          value={dateFilter}
+          onChange={(e) => setDateFilter(e.target.value)}
+          className="rounded-input border border-border bg-surface px-3 py-2 text-sm outline-none transition-colors duration-150 focus:border-primary"
+        />
+        {dateFilter && (
+          <button
+            type="button"
+            onClick={() => setDateFilter("")}
+            className="text-sm font-medium text-muted transition-colors duration-150 hover:text-primary"
+          >
+            Clear date
+          </button>
+        )}
         {error && (
           <p role="alert" className="rounded-input border border-danger/30 bg-danger/5 px-3 py-1.5 text-sm text-danger">
             {error}

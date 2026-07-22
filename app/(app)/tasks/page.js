@@ -19,6 +19,7 @@ import { fetchTasks, bulkUpdateTasks } from "@/services/taskService";
 import { fetchProjects } from "@/services/projectService";
 import { fetchDirectory } from "@/services/orgService";
 import useToast from "@/hooks/useToast";
+import { isTaskOverdue } from "@/lib/taskDates";
 
 const STATUSES = ["backlog", "todo", "in_progress", "review", "testing", "completed", "blocked"];
 
@@ -32,7 +33,7 @@ const startOfDay = (offset = 0) => {
 const bucketOf = (t) => {
   if (!t.deadline) return "No deadline";
   const dl = new Date(t.deadline);
-  if (dl < startOfDay(0) && t.status !== "completed") return "Overdue";
+  if (isTaskOverdue(t)) return "Overdue";
   if (dl < startOfDay(1)) return "Today";
   if (dl < startOfDay(8)) return "This week";
   return "Later";

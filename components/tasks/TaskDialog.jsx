@@ -24,6 +24,16 @@ const REPEAT_OPTIONS = [
 const schema = yup.object({
   project: yup.string().required("Project is required"),
   title: yup.string().trim().required("Title is required"),
+  startTime: yup.string().nullable(),
+  endTime: yup
+    .string()
+    .nullable()
+    .test("time-slot", "Both times are required together, end after start", function (value) {
+      const { startTime } = this.parent;
+      if (!startTime && !value) return true;
+      if (!!startTime !== !!value) return false;
+      return value > startTime;
+    }),
 });
 
 export default function TaskDialog({ open, onClose: onCloseProp, projects, directory, task }) {
@@ -71,6 +81,8 @@ export default function TaskDialog({ open, onClose: onCloseProp, projects, direc
         priority: task?.priority || "medium",
         estimatedHours: task?.estimatedHours ?? "",
         deadline: task?.deadline ? task.deadline.slice(0, 10) : "",
+        startTime: task?.startTime || "",
+        endTime: task?.endTime || "",
         labels: task?.labels?.join(", ") || "",
         blockedBy: task?.blockedBy?.map((b) => b._id || b) || [],
         recurrence: task?.recurrence?.frequency || "none",
@@ -86,6 +98,8 @@ export default function TaskDialog({ open, onClose: onCloseProp, projects, direc
         module: values.module || null,
         estimatedHours: values.estimatedHours ? Number(values.estimatedHours) : undefined,
         deadline: values.deadline || null,
+        startTime: values.startTime || null,
+        endTime: values.endTime || null,
         labels: values.labels
           ? values.labels.split(",").map((l) => l.trim()).filter(Boolean)
           : [],
@@ -188,7 +202,9 @@ export default function TaskDialog({ open, onClose: onCloseProp, projects, direc
           <Input label="Est. hours" type="number" min="0" step="0.5" {...register("estimatedHours")} />
           <Input label="Deadline" type="date" {...register("deadline")} />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <Input label="Start time" type="time" error={errors.startTime?.message} {...register("startTime")} />
+          <Input label="End time" type="time" error={errors.endTime?.message} {...register("endTime")} />
           <Input label="Labels (comma-separated)" placeholder="frontend, urgent" {...register("labels")} />
           <Select label="Repeats" {...register("recurrence")}>
             {REPEAT_OPTIONS.map(([value, label]) => (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Send, Plus, Trash2, Pencil, X } from "lucide-react";
 
@@ -19,11 +19,13 @@ import {
   deleteTask,
 } from "@/services/taskService";
 import useToast from "@/hooks/useToast";
+import { isTaskOverdue } from "@/lib/taskDates";
 
 const STATUSES = ["backlog", "todo", "in_progress", "review", "testing", "completed", "blocked"];
 const PRIORITIES = ["low", "medium", "high", "critical"];
 
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString() : "—");
+const fmtTime = (t) => t || "—";
 
 export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) {
   const me = useAuthStore((s) => s.user);
@@ -34,6 +36,8 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
   const [apiError, setApiError] = useState("");
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editText, setEditText] = useState("");
+  const [startTimeDraft, setStartTimeDraft] = useState("");
+  const [endTimeDraft, setEndTimeDraft] = useState("");
 
   const open = Boolean(taskStub);
   const { data: task } = useQuery({
@@ -41,6 +45,11 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
     queryFn: () => fetchTask(taskStub._id),
     enabled: open,
   });
+
+  useEffect(() => {
+    setStartTimeDraft(task?.startTime || "");
+    setEndTimeDraft(task?.endTime || "");
+  }, [task?._id, task?.startTime, task?.endTime]);
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["task", taskStub?._id] });
@@ -206,10 +215,42 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
               <p className="text-xs text-muted">Deadline</p>
               <p className="mt-0.5 flex items-center gap-1.5 font-medium tabular-nums">
                 {fmtDate(task.deadline)}
-                {task.deadline && new Date(task.deadline) < new Date() && task.status !== "completed" && (
-                  <Badge value="overdue" tone="danger" />
+                {(task.startTime || task.endTime) && (
+                  <span className="text-xs font-normal text-muted">
+                    {fmtTime(task.startTime)}–{fmtTime(task.endTime)}
+                  </span>
                 )}
+                {isTaskOverdue(task) && <Badge value="overdue" tone="danger" />}
               </p>
+              {canManage && (
+                <div className="mt-1.5 flex items-center gap-1.5">
+                  <input
+                    aria-label="Start time"
+                    type="time"
+                    value={startTimeDraft}
+                    onChange={(e) => setStartTimeDraft(e.target.value)}
+                    className="w-24 rounded-input border border-border bg-surface px-2 py-1 text-xs outline-none transition-colors duration-150 focus:border-primary"
+                  />
+                  <span className="text-xs text-muted">–</span>
+                  <input
+                    aria-label="End time"
+                    type="time"
+                    value={endTimeDraft}
+                    onChange={(e) => setEndTimeDraft(e.target.value)}
+                    className="w-24 rounded-input border border-border bg-surface px-2 py-1 text-xs outline-none transition-colors duration-150 focus:border-primary"
+                  />
+                  <button
+                    type="button"
+                    disabled={patch.isPending}
+                    onClick={() =>
+                      patch.mutate({ startTime: startTimeDraft || null, endTime: endTimeDraft || null })
+                    }
+                    className="text-xs font-medium text-primary transition-colors duration-150 hover:underline disabled:opacity-50"
+                  >
+                    Save
+                  </button>
+                </div>
+              )}
             </div>
             <div>
               <p className="text-xs text-muted">Estimated</p>

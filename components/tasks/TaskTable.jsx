@@ -1,9 +1,9 @@
 "use client";
 
 import Badge from "@/components/ui/Badge";
+import { isTaskOverdue } from "@/lib/taskDates";
 
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString() : "—");
-const isOverdue = (t) => t.deadline && new Date(t.deadline) < new Date() && t.status !== "completed";
 
 export default function TaskTable({ tasks, onOpen, selected, onToggleSelect, onToggleSelectAll }) {
   const selectable = Boolean(selected);
@@ -72,7 +72,7 @@ export default function TaskTable({ tasks, onOpen, selected, onToggleSelect, onT
               <td className="px-4 py-3 tabular-nums text-muted">
                 <span className="inline-flex items-center gap-1.5">
                   {fmtDate(t.deadline)}
-                  {isOverdue(t) && <Badge value="overdue" tone="danger" />}
+                  {isTaskOverdue(t) && <Badge value="overdue" tone="danger" />}
                 </span>
               </td>
               <td className="hidden px-4 py-3 tabular-nums text-muted md:table-cell">{t.estimatedHours ?? "—"}</td>

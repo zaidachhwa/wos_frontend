@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/Field";
 import { fetchCalendar, fetchTimeBlocks } from "@/services/timeblockService";
 import { fetchProjects } from "@/services/projectService";
 import { fetchDirectory } from "@/services/orgService";
+import { combineDeadlineAndTime } from "@/lib/taskDates";
 
 // Muted calendar palette (defined in globals.css; CSS vars resolve at paint).
 const CATEGORY_COLORS = {
@@ -59,8 +60,13 @@ export default function CalendarPage() {
   const events = items.map((item) => ({
     id: `${item.type}:${item.id}`,
     title: item.title,
-    start: item.start,
-    end: item.end || undefined,
+    // A task's startTime/endTime are "HH:mm" wall-clock values with no
+    // timezone of their own — combine them with the deadline's date here,
+    // in the browser, so they land on the viewer's own local clock (the
+    // server can't do this combination correctly, since it doesn't know
+    // the viewer's timezone).
+    start: item.startTime ? combineDeadlineAndTime(item.start, item.startTime) : item.start,
+    end: item.endTime ? combineDeadlineAndTime(item.start, item.endTime) : item.end || undefined,
     backgroundColor: eventColor(item),
     borderColor: "transparent",
     extendedProps: item,

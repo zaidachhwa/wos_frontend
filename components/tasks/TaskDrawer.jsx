@@ -222,35 +222,6 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
                 )}
                 {isTaskOverdue(task) && <Badge value="overdue" tone="danger" />}
               </p>
-              {canManage && (
-                <div className="mt-1.5 flex items-center gap-1.5">
-                  <input
-                    aria-label="Start time"
-                    type="time"
-                    value={startTimeDraft}
-                    onChange={(e) => setStartTimeDraft(e.target.value)}
-                    className="w-24 rounded-input border border-border bg-surface px-2 py-1 text-xs outline-none transition-colors duration-150 focus:border-primary"
-                  />
-                  <span className="text-xs text-muted">–</span>
-                  <input
-                    aria-label="End time"
-                    type="time"
-                    value={endTimeDraft}
-                    onChange={(e) => setEndTimeDraft(e.target.value)}
-                    className="w-24 rounded-input border border-border bg-surface px-2 py-1 text-xs outline-none transition-colors duration-150 focus:border-primary"
-                  />
-                  <button
-                    type="button"
-                    disabled={patch.isPending}
-                    onClick={() =>
-                      patch.mutate({ startTime: startTimeDraft || null, endTime: endTimeDraft || null })
-                    }
-                    className="text-xs font-medium text-primary transition-colors duration-150 hover:underline disabled:opacity-50"
-                  >
-                    Save
-                  </button>
-                </div>
-              )}
             </div>
             <div>
               <p className="text-xs text-muted">Estimated</p>
@@ -261,6 +232,45 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
               <p className="mt-0.5 font-medium tabular-nums">{task.actualHours ?? "—"}h</p>
             </div>
           </div>
+
+          {canManage && (
+            <div className="flex flex-wrap items-end gap-3 rounded-card border border-border bg-background/60 p-4">
+              <div>
+                <label htmlFor="task-start-time" className="text-xs text-muted">
+                  Start time
+                </label>
+                <input
+                  id="task-start-time"
+                  type="time"
+                  value={startTimeDraft}
+                  onChange={(e) => setStartTimeDraft(e.target.value)}
+                  className="mt-1 block rounded-input border border-border bg-surface px-3 py-2 text-sm outline-none transition-colors duration-150 focus:border-primary"
+                />
+              </div>
+              <div>
+                <label htmlFor="task-end-time" className="text-xs text-muted">
+                  End time
+                </label>
+                <input
+                  id="task-end-time"
+                  type="time"
+                  value={endTimeDraft}
+                  onChange={(e) => setEndTimeDraft(e.target.value)}
+                  className="mt-1 block rounded-input border border-border bg-surface px-3 py-2 text-sm outline-none transition-colors duration-150 focus:border-primary"
+                />
+              </div>
+              <Button
+                variant="secondary"
+                disabled={
+                  patch.isPending ||
+                  (startTimeDraft === (task.startTime || "") && endTimeDraft === (task.endTime || ""))
+                }
+                onClick={() => patch.mutate({ startTime: startTimeDraft || null, endTime: endTimeDraft || null })}
+              >
+                Save time slot
+              </Button>
+            </div>
+          )}
 
           {task.description && (
             <section>

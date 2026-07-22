@@ -13,6 +13,12 @@ import { fetchTasks, updateTask } from "@/services/taskService";
 import { fetchProjects } from "@/services/projectService";
 import { fetchDirectory } from "@/services/orgService";
 
+const todayStr = () => {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+
 const COLUMNS = [
   ["backlog", "Backlog"],
   ["todo", "To Do"],
@@ -30,7 +36,7 @@ export default function TaskKanbanPage() {
 
   const [scope, setScope] = useState("me");
   const [projectFilter, setProjectFilter] = useState("");
-  const [dateFilter, setDateFilter] = useState("");
+  const [dateFilter, setDateFilter] = useState(todayStr);
   const [openTask, setOpenTask] = useState(null);
   const [error, setError] = useState("");
 

@@ -21,6 +21,12 @@ const REPEAT_OPTIONS = [
   ["monthly", "Monthly"],
 ];
 
+const nowTimeStr = () => {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
 const schema = yup.object({
   project: yup.string().required("Project is required"),
   title: yup.string().trim().required("Title is required"),
@@ -81,7 +87,7 @@ export default function TaskDialog({ open, onClose: onCloseProp, projects, direc
         priority: task?.priority || "medium",
         estimatedHours: task?.estimatedHours ?? "",
         deadline: task?.deadline ? task.deadline.slice(0, 10) : "",
-        startTime: task?.startTime || "",
+        startTime: task?.startTime || nowTimeStr(),
         endTime: task?.endTime || "",
         labels: task?.labels?.join(", ") || "",
         blockedBy: task?.blockedBy?.map((b) => b._id || b) || [],

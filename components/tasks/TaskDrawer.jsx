@@ -20,6 +20,7 @@ import {
 } from "@/services/taskService";
 import useToast from "@/hooks/useToast";
 import { isTaskOverdue } from "@/lib/taskDates";
+import { taskPointCeiling, maxBonusFor } from "@/constants/points.constants";
 
 const STATUSES = ["backlog", "todo", "in_progress", "review", "testing", "completed", "blocked"];
 const PRIORITIES = ["low", "medium", "high", "critical"];
@@ -38,6 +39,8 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
   const [editText, setEditText] = useState("");
   const [startTimeDraft, setStartTimeDraft] = useState("");
   const [endTimeDraft, setEndTimeDraft] = useState("");
+  const [actualHoursDraft, setActualHoursDraft] = useState("");
+  const [bonusPointsDraft, setBonusPointsDraft] = useState("");
 
   const open = Boolean(taskStub);
   const { data: task } = useQuery({
@@ -50,6 +53,14 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
     setStartTimeDraft(task?.startTime || "");
     setEndTimeDraft(task?.endTime || "");
   }, [task?._id, task?.startTime, task?.endTime]);
+
+  useEffect(() => {
+    setActualHoursDraft(task?.actualHours ?? "");
+  }, [task?._id, task?.actualHours]);
+
+  useEffect(() => {
+    setBonusPointsDraft(task?.bonusPoints ?? 0);
+  }, [task?._id, task?.bonusPoints]);
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["task", taskStub?._id] });
@@ -184,6 +195,11 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
             </Select>
           </div>
 
+          <p className="text-xs text-muted">
+            Worth up to <span className="font-medium text-primary">{taskPointCeiling(task.priority)} pts</span> on
+            the leaderboard
+          </p>
+
           <MultiSelect
             label="Assignees"
             items={directory}
@@ -229,7 +245,24 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
             </div>
             <div>
               <p className="text-xs text-muted">Actual</p>
-              <p className="mt-0.5 font-medium tabular-nums">{task.actualHours ?? "—"}h</p>
+              {canEditStatus ? (
+                <input
+                  aria-label="Actual hours"
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  value={actualHoursDraft}
+                  disabled={patch.isPending}
+                  onChange={(e) => setActualHoursDraft(e.target.value)}
+                  onBlur={() => {
+                    const value = actualHoursDraft === "" ? null : Number(actualHoursDraft);
+                    if (value !== (task.actualHours ?? null)) patch.mutate({ actualHours: value });
+                  }}
+                  className="mt-0.5 w-20 rounded-input border border-border bg-surface px-2 py-1 text-sm font-medium tabular-nums outline-none transition-colors duration-150 focus:border-primary disabled:opacity-50"
+                />
+              ) : (
+                <p className="mt-0.5 font-medium tabular-nums">{task.actualHours ?? "—"}h</p>
+              )}
             </div>
           </div>
 
@@ -268,6 +301,33 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
                 onClick={() => patch.mutate({ startTime: startTimeDraft || null, endTime: endTimeDraft || null })}
               >
                 Save time slot
+              </Button>
+            </div>
+          )}
+
+          {canManage && task.status === "completed" && (
+            <div className="flex flex-wrap items-end gap-3 rounded-card border border-border bg-background/60 p-4">
+              <div>
+                <label htmlFor="task-bonus-points" className="text-xs text-muted">
+                  Bonus points (0–{maxBonusFor(task.priority)})
+                </label>
+                <input
+                  id="task-bonus-points"
+                  type="number"
+                  min="0"
+                  max={maxBonusFor(task.priority)}
+                  step="1"
+                  value={bonusPointsDraft}
+                  onChange={(e) => setBonusPointsDraft(e.target.value)}
+                  className="mt-1 block w-24 rounded-input border border-border bg-surface px-3 py-2 text-sm outline-none transition-colors duration-150 focus:border-primary"
+                />
+              </div>
+              <Button
+                variant="secondary"
+                disabled={patch.isPending || Number(bonusPointsDraft) === (task.bonusPoints ?? 0)}
+                onClick={() => patch.mutate({ bonusPoints: Number(bonusPointsDraft) || 0 })}
+              >
+                Award bonus
               </Button>
             </div>
           )}

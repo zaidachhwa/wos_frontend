@@ -9,6 +9,7 @@ import {
   Bell,
   Settings,
   Trophy,
+  Sliders,
 } from "lucide-react";
 
 export const NAV_ITEMS = [
@@ -18,8 +19,9 @@ export const NAV_ITEMS = [
   { href: "/tasks", label: "Tasks", icon: CheckSquare },
   { href: "/follow-ups", label: "Follow-ups", icon: MessageSquare },
   { href: "/team", label: "Team", icon: Users },
-  { href: "/reports", label: "Reports", icon: BarChart3 },
+  { href: "/reports", label: "Reports", icon: BarChart3, roles: ["admin", "manager"] },
   { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
+  { href: "/admin/leaderboard", label: "Leaderboard settings", icon: Sliders, roles: ["admin"] },
   { href: "/notifications", label: "Notifications", icon: Bell },
   { href: "/settings", label: "Settings", icon: Settings },
 ];

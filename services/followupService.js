@@ -26,3 +26,8 @@ export const fetchFollowUpSuggestion = async (date) => {
   const { data } = await axiosInstance.get("/followups/suggestions", { params: { date } });
   return data.data;
 };
+
+export const fetchWorkLog = async () => {
+  const { data } = await axiosInstance.get("/followups/work-log");
+  return data.data;
+};

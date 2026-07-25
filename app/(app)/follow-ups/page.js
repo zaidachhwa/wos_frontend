@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import FollowUpCard from "@/components/followups/FollowUpCard";
 import FollowUpHistory from "@/components/followups/FollowUpHistory";
 import TeamFollowUps from "@/components/followups/TeamFollowUps";
+import EodWorkLog from "@/components/followups/EodWorkLog";
 import Skeleton from "@/components/ui/Skeleton";
 import Pagination from "@/components/ui/Pagination";
 import { useAuthStore } from "@/store/authStore";
@@ -74,6 +75,11 @@ export default function FollowUpsPage() {
               <FollowUpCard type="morning" date={today} followUp={byType("morning")} />
               <FollowUpCard type="evening" date={today} followUp={byType("evening")} />
             </div>
+            {["submitted", "reviewed"].includes(byType("evening")?.status) && (
+              <div className="mt-6 flex justify-end">
+                <EodWorkLog />
+              </div>
+            )}
             <div className="mt-6">
               <h3 className="mb-3 text-base font-semibold tracking-tight">Previous follow-ups</h3>
               <FollowUpHistory followUps={pastFollowUps} />

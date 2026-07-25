@@ -21,6 +21,7 @@ import {
 import useToast from "@/hooks/useToast";
 import { isTaskOverdue } from "@/lib/taskDates";
 import { taskPointCeiling, maxBonusFor } from "@/constants/points.constants";
+import { fetchPointsConfig } from "@/services/leaderboardService";
 
 const STATUSES = ["backlog", "todo", "in_progress", "review", "testing", "completed", "blocked"];
 const PRIORITIES = ["low", "medium", "high", "critical"];
@@ -47,6 +48,13 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
     queryKey: ["task", taskStub?._id],
     queryFn: () => fetchTask(taskStub._id),
     enabled: open,
+  });
+
+  const { data: pointsConfig } = useQuery({
+    queryKey: ["points-config"],
+    queryFn: fetchPointsConfig,
+    enabled: open,
+    staleTime: 5 * 60 * 1000,
   });
 
   useEffect(() => {
@@ -196,7 +204,8 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
           </div>
 
           <p className="text-xs text-muted">
-            Worth up to <span className="font-medium text-primary">{taskPointCeiling(task.priority)} pts</span> on
+            Worth up to{" "}
+            <span className="font-medium text-primary">{taskPointCeiling(task.priority, pointsConfig)} pts</span> on
             the leaderboard
           </p>
 
@@ -309,13 +318,13 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
             <div className="flex flex-wrap items-end gap-3 rounded-card border border-border bg-background/60 p-4">
               <div>
                 <label htmlFor="task-bonus-points" className="text-xs text-muted">
-                  Bonus points (0–{maxBonusFor(task.priority)})
+                  Bonus points (0–{maxBonusFor(task.priority, pointsConfig)})
                 </label>
                 <input
                   id="task-bonus-points"
                   type="number"
                   min="0"
-                  max={maxBonusFor(task.priority)}
+                  max={maxBonusFor(task.priority, pointsConfig)}
                   step="1"
                   value={bonusPointsDraft}
                   onChange={(e) => setBonusPointsDraft(e.target.value)}

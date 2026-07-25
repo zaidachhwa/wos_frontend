@@ -84,7 +84,7 @@ export default function TaskDialog({ open, onClose: onCloseProp, projects, direc
         title: task?.title || "",
         description: task?.description || "",
         assignees: task?.assignees?.map((a) => a._id || a) || [],
-        priority: task?.priority || "medium",
+        priority: task?.priority || "low",
         estimatedHours: task?.estimatedHours ?? "",
         deadline: task?.deadline ? task.deadline.slice(0, 10) : "",
         startTime: task?.startTime || nowTimeStr(),

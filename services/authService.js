@@ -5,6 +5,11 @@ export const login = async (credentials) => {
   return data.data;
 };
 
+export const loginWithGoogle = async (credential) => {
+  const { data } = await axiosInstance.post("/auth/google", { credential });
+  return data.data;
+};
+
 export const logout = async () => {
   await axiosInstance.post("/auth/logout");
 };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -8,7 +8,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 
 import { useAuthStore } from "@/store/authStore";
-import { login } from "@/services/authService";
+import { login, loginWithGoogle } from "@/services/authService";
 import { Input, Button } from "@/components/ui/Field";
 
 const schema = yup.object({
@@ -36,6 +36,36 @@ export default function LoginPage() {
       setApiError(error.response?.data?.message || "Something went wrong. Please try again.");
     }
   };
+
+  const handleGoogleCredential = useCallback(
+    async ({ credential }) => {
+      setApiError("");
+      try {
+        const data = await loginWithGoogle(credential);
+        setAuth(data);
+        router.replace("/dashboard");
+      } catch (error) {
+        setApiError(error.response?.data?.message || "Something went wrong. Please try again.");
+      }
+    },
+    [router, setAuth]
+  );
+
+  useEffect(() => {
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+    if (!clientId) return undefined;
+
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.onload = () => {
+      window.google.accounts.id.initialize({ client_id: clientId, callback: handleGoogleCredential });
+      const target = document.getElementById("google-signin-button");
+      if (target) window.google.accounts.id.renderButton(target, { theme: "outline", size: "large", width: 320 });
+    };
+    document.body.appendChild(script);
+    return () => document.body.removeChild(script);
+  }, [handleGoogleCredential]);
 
   return (
     <main className="flex min-h-screen flex-col md:flex-row">
@@ -99,6 +129,17 @@ export default function LoginPage() {
               {isSubmitting ? "Signing in…" : "Sign in"}
             </Button>
           </form>
+
+          {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && (
+            <div className="mt-6 space-y-3">
+              <div className="flex items-center gap-3 text-xs text-muted">
+                <span className="h-px flex-1 bg-border" />
+                or
+                <span className="h-px flex-1 bg-border" />
+              </div>
+              <div id="google-signin-button" className="flex justify-center" />
+            </div>
+          )}
         </div>
       </div>
     </main>

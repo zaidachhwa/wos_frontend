@@ -23,6 +23,15 @@
   --cal-task-deadline: #b96a6a;
   --cal-project-deadline: #b98a54;
   --cal-default: #8b8577;
+
+  /* Per-project calendar bar colors — cycled by a name hash, same muted
+     mid-tone family as the rest of the calendar palette. */
+  --cal-proj-1: #5f8f6b;
+  --cal-proj-2: #8a6bb0;
+  --cal-proj-3: #6a86b0;
+  --cal-proj-4: #b0955a;
+  --cal-proj-5: #6bafae;
+  --cal-proj-6: #a8708f;
 }
 
 /* Dark theme — same warm hue family, inverted values. Everything downstream
@@ -49,6 +58,13 @@
   --cal-task-deadline: #c97a7a;
   --cal-project-deadline: #c99a64;
   --cal-default: #9b9587;
+
+  --cal-proj-1: #6fa17b;
+  --cal-proj-2: #9a7bc0;
+  --cal-proj-3: #7a96c0;
+  --cal-proj-4: #c0a56a;
+  --cal-proj-5: #7bbfbe;
+  --cal-proj-6: #b8809f;
 }
 
 @theme inline {

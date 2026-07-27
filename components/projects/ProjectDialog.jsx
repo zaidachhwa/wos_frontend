@@ -8,6 +8,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import Dialog from "@/components/ui/Dialog";
 import { Input, Textarea, Select, Button } from "@/components/ui/Field";
+import MultiSelect from "@/components/ui/MultiSelect";
 import { createProject, updateProject } from "@/services/projectService";
 import useToast from "@/hooks/useToast";
 import { PROJECT_STATUSES, PROJECT_TYPES } from "@/constants/project.constants";
@@ -69,9 +70,6 @@ function ProjectForm({ onClose, project, directory }) {
     },
   });
 
-  const toggleMember = (id) =>
-    setMemberIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
-
   const managerOptions = directory.filter((d) => ["admin", "manager"].includes(d.role));
 
   return (
@@ -120,27 +118,13 @@ function ProjectForm({ onClose, project, directory }) {
         <Input label="Start date" type="date" {...register("startDate")} />
         <Input label="Deadline" type="date" {...register("deadline")} />
       </div>
-      <div>
-        <p className="text-sm font-medium">Members</p>
-        <div className="mt-2 grid max-h-44 grid-cols-1 gap-1 overflow-y-auto rounded-input border border-border p-2 sm:grid-cols-2">
-          {directory.map((d) => (
-            <label
-              key={d._id}
-              className="flex cursor-pointer items-center gap-2 rounded-btn px-2 py-1.5 text-sm transition-colors duration-150 hover:bg-background"
-            >
-              <input
-                type="checkbox"
-                checked={memberIds.includes(d._id)}
-                onChange={() => toggleMember(d._id)}
-                className="accent-primary"
-              />
-              <span className="truncate">{d.name}</span>
-              <span className="ml-auto text-xs capitalize text-muted">{d.role}</span>
-            </label>
-          ))}
-          {!directory.length && <p className="px-2 py-1.5 text-sm text-muted">No people yet.</p>}
-        </div>
-      </div>
+      <MultiSelect
+        label="Members"
+        items={directory}
+        value={memberIds}
+        onChange={setMemberIds}
+        placeholder="Search members…"
+      />
       <div className="flex justify-end gap-2 border-t border-border pt-4">
         <Button variant="secondary" type="button" onClick={onClose}>
           Cancel

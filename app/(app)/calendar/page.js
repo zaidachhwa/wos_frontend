@@ -84,7 +84,8 @@ export default function CalendarPage() {
     const isMultiDay = item.type === "task_deadline" && spanStartDay && deadlineDay && spanStartDay < deadlineDay;
 
     if (isMultiDay) {
-      const todayDay = new Date().toISOString().slice(0, 10);
+      const now = new Date();
+      const todayDay = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
       const barStartDay = spanStartDay > todayDay ? spanStartDay : todayDay;
       const barEnd = new Date(item.start);
       barEnd.setDate(barEnd.getDate() + 1); // FullCalendar's `end` is exclusive

@@ -47,9 +47,10 @@ const renderEventContent = (arg) => {
   return (
     <div className={`flex items-center gap-1 truncate px-1 text-xs ${done ? "line-through opacity-60" : ""}`}>
       {done && <Check size={12} className="shrink-0" />}
-      {item.projectName && (
+      {arg.timeText && <span className="shrink-0 opacity-80">{arg.timeText}</span>}
+      {(item.projectName || item.label) && (
         <span className="shrink-0 rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] font-medium">
-          {item.projectName}
+          {item.projectName || item.label}
         </span>
       )}
       <span className="truncate">{arg.event.title}</span>
@@ -78,23 +79,30 @@ export default function CalendarPage() {
   const { data: projects = [] } = useQuery({ queryKey: ["projects"], queryFn: fetchProjects });
   const { data: directory = [] } = useQuery({ queryKey: ["directory"], queryFn: fetchDirectory });
 
+  const localDay = (d) => {
+    const x = new Date(d);
+    return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`;
+  };
+
   const events = items.map((item) => {
-    const spanStartDay = item.spanStart && new Date(item.spanStart).toISOString().slice(0, 10);
+    const spanStartDay = item.spanStart && localDay(item.spanStart);
+    // deadline is stored as a UTC-midnight date-only value (see lib/taskDates.js),
+    // so its UTC calendar day IS its intended calendar day — unlike spanStart/today
+    // below, which are real instants and need local-day extraction. Don't "fix"
+    // this to match the other two.
     const deadlineDay = item.start && new Date(item.start).toISOString().slice(0, 10);
     const isMultiDay = item.type === "task_deadline" && spanStartDay && deadlineDay && spanStartDay < deadlineDay;
 
     if (isMultiDay) {
-      const now = new Date();
-      const todayDay = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-      const barStartDay = spanStartDay > todayDay ? spanStartDay : todayDay;
-      const barEnd = new Date(item.start);
-      barEnd.setDate(barEnd.getDate() + 1); // FullCalendar's `end` is exclusive
+      const todayDay = localDay(new Date());
+      const barStartDay = [spanStartDay, todayDay, deadlineDay].sort()[1];
+      const barEnd = new Date(Date.parse(deadlineDay) + 86400000).toISOString().slice(0, 10); // exclusive end, computed in UTC to dodge DST
 
       return {
         id: `${item.type}:${item.id}`,
         title: item.title,
         start: barStartDay,
-        end: barEnd.toISOString().slice(0, 10),
+        end: barEnd,
         allDay: true,
         backgroundColor: eventColor(item),
         borderColor: "transparent",

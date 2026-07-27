@@ -21,8 +21,8 @@ axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
     const original = error.config;
-    const noRetry = ["/auth/login", "/auth/refresh", "/auth/logout"].some((path) =>
-      original?.url?.includes(path)
+    const noRetry = ["/auth/login", "/auth/refresh", "/auth/logout", "/auth/google"].some(
+      (path) => original?.url?.includes(path)
     );
     if (error.response?.status !== 401 || original?._retried || noRetry) {
       return Promise.reject(error);

@@ -61,7 +61,7 @@ const renderEventContent = (arg) => {
 export default function CalendarPage() {
   const router = useRouter();
   const me = useAuthStore((s) => s.user);
-  const canViewOthers = ["admin", "manager"].includes(me?.role);
+  const canViewOthers = ["admin", "manager", "subadmin"].includes(me?.role);
   const [viewUser, setViewUser] = useState("");
   const [range, setRange] = useState(null);
   const [dialog, setDialog] = useState({ open: false, block: null, defaultDate: null });

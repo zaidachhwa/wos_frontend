@@ -20,7 +20,7 @@ const PAGE_SIZE = 12;
 
 export default function ProjectsPage() {
   const me = useAuthStore((s) => s.user);
-  const canCreate = ["admin", "manager"].includes(me?.role);
+  const canCreate = ["admin", "manager", "subadmin"].includes(me?.role);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");

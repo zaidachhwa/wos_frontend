@@ -42,8 +42,8 @@ const BUCKET_ORDER = ["Overdue", "Today", "This week", "Later", "No deadline"];
 
 export default function TasksPage() {
   const me = useAuthStore((s) => s.user);
-  const canCreate = ["admin", "manager", "sublead", "member"].includes(me?.role);
-  const canBulk = ["admin", "manager", "sublead"].includes(me?.role);
+  const canCreate = ["admin", "manager", "subadmin", "sublead", "member"].includes(me?.role);
+  const canBulk = ["admin", "manager", "subadmin", "sublead"].includes(me?.role);
   const canApprove = ["admin", "manager"].includes(me?.role);
   const queryClient = useQueryClient();
   const toast = useToast();

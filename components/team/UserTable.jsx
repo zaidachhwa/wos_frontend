@@ -4,7 +4,7 @@ import { Pencil, Trash2 } from "lucide-react";
 
 import Badge from "@/components/ui/Badge";
 
-const ROLE_TONES = { admin: "danger", manager: "info", sublead: "warning", member: "muted" };
+const ROLE_TONES = { admin: "danger", manager: "info", subadmin: "success", sublead: "warning", member: "muted" };
 
 export default function UserTable({ users, canEdit, onEdit, onDelete }) {
   return (

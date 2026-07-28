@@ -50,7 +50,7 @@ export default function ProjectDetailsPage({ params }) {
   });
 
   const canManage = ["admin", "manager"].includes(me?.role) || project?.manager?._id === me?._id;
-  const canManageModules = ["admin", "manager", "sublead"].includes(me?.role);
+  const canManageModules = ["admin", "manager", "subadmin", "sublead"].includes(me?.role);
 
   const removeProject = useMutation({
     mutationFn: () => deleteProject(id),

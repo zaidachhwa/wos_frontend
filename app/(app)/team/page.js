@@ -99,6 +99,7 @@ export default function TeamPage() {
               <option value="">All roles</option>
               <option value="admin">Admin</option>
               <option value="manager">Manager</option>
+              <option value="subadmin">Sub Admin</option>
               <option value="sublead">Sub Lead</option>
               <option value="member">Member</option>
             </select>

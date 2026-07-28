@@ -40,7 +40,7 @@ function TimeBlockForm({ onClose, block, defaultDate, directory, projects }) {
   const queryClient = useQueryClient();
   const [apiError, setApiError] = useState("");
 
-  const canAssignOthers = ["admin", "manager"].includes(me?.role);
+  const canAssignOthers = ["admin", "manager", "subadmin"].includes(me?.role);
   const start = block ? toLocalParts(block.start) : null;
   const end = block ? toLocalParts(block.end) : null;
 

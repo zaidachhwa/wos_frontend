@@ -26,8 +26,12 @@ const schema = yup.object({
   }),
 });
 
-export default function UserDialog({ open, onClose: onCloseProp, user, directory, departments, teams }) {
+export default function UserDialog({ open, onClose: onCloseProp, user, directory, departments, teams, actor }) {
   const isEdit = Boolean(user);
+  const isSubadminActor = actor?.role === "subadmin";
+  const visibleTeams = isSubadminActor
+    ? teams.filter((t) => t.department?._id === actor?.managedDepartment?._id)
+    : teams;
   const queryClient = useQueryClient();
   const [apiError, setApiError] = useState("");
   const onClose = () => {
@@ -119,19 +123,25 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
         <Select label="Role" error={errors.role?.message} {...register("role")}>
           <option value="member">Member</option>
           <option value="sublead">Sub Lead</option>
-          <option value="manager">Manager</option>
-          <option value="subadmin">Sub Admin</option>
-          <option value="admin">Admin</option>
+          {!isSubadminActor && (
+            <>
+              <option value="manager">Manager</option>
+              <option value="subadmin">Sub Admin</option>
+              <option value="admin">Admin</option>
+            </>
+          )}
         </Select>
         <Input label="Designation" {...register("designation")} />
-        <Select label="Department" {...register("department")}>
-          <option value="">None</option>
-          {departments.map((d) => (
-            <option key={d._id} value={d._id}>
-              {d.name}
-            </option>
-          ))}
-        </Select>
+        {!isSubadminActor && (
+          <Select label="Department" {...register("department")}>
+            <option value="">None</option>
+            {departments.map((d) => (
+              <option key={d._id} value={d._id}>
+                {d.name}
+              </option>
+            ))}
+          </Select>
+        )}
         {selectedRole === "subadmin" && (
           <div className="animate-[fadeIn_150ms_ease-out]">
             <Select
@@ -150,22 +160,24 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
         )}
         <Select label="Team" {...register("team")}>
           <option value="">None</option>
-          {teams.map((t) => (
+          {visibleTeams.map((t) => (
             <option key={t._id} value={t._id}>
               {t.name}
             </option>
           ))}
         </Select>
-        <Select label="Reporting manager" {...register("reportingManager")}>
-          <option value="">None</option>
-          {managers
-            .filter((m) => m._id !== user?._id)
-            .map((m) => (
-              <option key={m._id} value={m._id}>
-                {m.name} ({m.role})
-              </option>
-            ))}
-        </Select>
+        {!isSubadminActor && (
+          <Select label="Reporting manager" {...register("reportingManager")}>
+            <option value="">None</option>
+            {managers
+              .filter((m) => m._id !== user?._id)
+              .map((m) => (
+                <option key={m._id} value={m._id}>
+                  {m.name} ({m.role})
+                </option>
+              ))}
+          </Select>
+        )}
         {isEdit && (
           <Select label="Status" {...register("isActive")}>
             <option value="true">Active</option>

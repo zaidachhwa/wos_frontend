@@ -176,6 +176,7 @@ export default function TeamPage() {
           directory={users || []}
           departments={departments}
           teams={teams}
+          actor={me}
         />
       )}
     </div>

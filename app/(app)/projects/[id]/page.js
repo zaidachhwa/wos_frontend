@@ -49,7 +49,7 @@ export default function ProjectDetailsPage({ params }) {
     enabled: tab === "activity" || tab === "overview",
   });
 
-  const canManage = ["admin", "manager"].includes(me?.role) || project?.manager?._id === me?._id;
+  const canManage = ["admin", "manager", "subadmin"].includes(me?.role) || project?.manager?._id === me?._id;
   const canManageModules = ["admin", "manager", "subadmin", "sublead"].includes(me?.role);
 
   const removeProject = useMutation({

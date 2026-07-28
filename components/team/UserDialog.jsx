@@ -18,7 +18,12 @@ const schema = yup.object({
     then: (s) => s.min(8, "At least 8 characters").required("Password is required"),
     otherwise: (s) => s.strip(),
   }),
-  role: yup.string().oneOf(["admin", "manager", "sublead", "member"]).required(),
+  role: yup.string().oneOf(["admin", "manager", "subadmin", "sublead", "member"]).required(),
+  managedDepartment: yup.string().when("role", {
+    is: "subadmin",
+    then: (s) => s.required("Managed department is required for the subadmin role"),
+    otherwise: (s) => s.strip(),
+  }),
 });
 
 export default function UserDialog({ open, onClose: onCloseProp, user, directory, departments, teams }) {
@@ -34,8 +39,11 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm({ resolver: yupResolver(schema), context: { isEdit } });
+
+  const selectedRole = watch("role");
 
   useEffect(() => {
     if (open) {
@@ -44,6 +52,7 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
         email: user?.email || "",
         password: "",
         role: user?.role || "member",
+        managedDepartment: user?.managedDepartment?._id || "",
         designation: user?.designation || "",
         department: user?.department?._id || "",
         team: user?.team?._id || "",
@@ -61,6 +70,7 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
         department: values.department || null,
         team: values.team || null,
         reportingManager: values.reportingManager || null,
+        managedDepartment: values.role === "subadmin" ? values.managedDepartment || null : null,
         isActive: values.isActive === "true",
       };
       if (isEdit) {
@@ -110,6 +120,7 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
           <option value="member">Member</option>
           <option value="sublead">Sub Lead</option>
           <option value="manager">Manager</option>
+          <option value="subadmin">Sub Admin</option>
           <option value="admin">Admin</option>
         </Select>
         <Input label="Designation" {...register("designation")} />
@@ -121,6 +132,22 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
             </option>
           ))}
         </Select>
+        {selectedRole === "subadmin" && (
+          <div className="animate-[fadeIn_150ms_ease-out]">
+            <Select
+              label="Managed department"
+              error={errors.managedDepartment?.message}
+              {...register("managedDepartment")}
+            >
+              <option value="">Select department…</option>
+              {departments.map((d) => (
+                <option key={d._id} value={d._id}>
+                  {d.name}
+                </option>
+              ))}
+            </Select>
+          </div>
+        )}
         <Select label="Team" {...register("team")}>
           <option value="">None</option>
           {teams.map((t) => (

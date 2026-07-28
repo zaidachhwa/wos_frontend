@@ -12,7 +12,8 @@ import {
   deleteTeam,
 } from "@/services/orgService";
 
-export default function OrgStructure({ departments, teams }) {
+export default function OrgStructure({ departments, teams, me }) {
+  const canManageDepartments = me?.role === "admin";
   const queryClient = useQueryClient();
   const [deptName, setDeptName] = useState("");
   const [teamName, setTeamName] = useState("");
@@ -36,7 +37,7 @@ export default function OrgStructure({ departments, teams }) {
   });
   const removeDept = useMutation({ mutationFn: deleteDepartment, onSuccess: invalidate, onError });
   const addTeam = useMutation({
-    mutationFn: () => createTeam({ name: teamName, department: teamDept }),
+    mutationFn: () => createTeam({ name: teamName, department: canManageDepartments ? teamDept : me?.managedDepartment?._id }),
     onSuccess: () => {
       setTeamName("");
       setError("");
@@ -57,6 +58,7 @@ export default function OrgStructure({ departments, teams }) {
         </p>
       )}
 
+      {canManageDepartments && (
       <section className="rounded-card border border-border bg-surface p-6">
         <h3 className="text-base font-semibold tracking-tight">Departments</h3>
         <div className="mt-4 flex gap-2">
@@ -88,6 +90,7 @@ export default function OrgStructure({ departments, teams }) {
           {!departments.length && <li className="py-2.5 text-sm text-muted">No departments yet.</li>}
         </ul>
       </section>
+      )}
 
       <section className="rounded-card border border-border bg-surface p-6">
         <h3 className="text-base font-semibold tracking-tight">Teams</h3>
@@ -98,17 +101,26 @@ export default function OrgStructure({ departments, teams }) {
             value={teamName}
             onChange={(e) => setTeamName(e.target.value)}
           />
-          <Select aria-label="Team department" value={teamDept} onChange={(e) => setTeamDept(e.target.value)}>
+          <Select
+            aria-label="Team department"
+            value={canManageDepartments ? teamDept : me?.managedDepartment?._id || ""}
+            disabled={!canManageDepartments}
+            onChange={(e) => setTeamDept(e.target.value)}
+          >
             <option value="">Department…</option>
-            {departments.map((d) => (
-              <option key={d._id} value={d._id}>
-                {d.name}
-              </option>
-            ))}
+            {(canManageDepartments ? departments : departments.filter((d) => d._id === me?.managedDepartment?._id)).map(
+              (d) => (
+                <option key={d._id} value={d._id}>
+                  {d.name}
+                </option>
+              )
+            )}
           </Select>
           <Button
             className="mt-1"
-            disabled={!teamName.trim() || !teamDept || addTeam.isPending}
+            disabled={
+              !teamName.trim() || !(canManageDepartments ? teamDept : me?.managedDepartment?._id) || addTeam.isPending
+            }
             onClick={() => addTeam.mutate()}
           >
             <Plus size={16} /> Add

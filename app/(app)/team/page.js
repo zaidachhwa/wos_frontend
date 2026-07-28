@@ -16,6 +16,7 @@ import { fetchUsers, fetchDirectory, fetchDepartments, fetchTeams, deleteUser } 
 export default function TeamPage() {
   const me = useAuthStore((s) => s.user);
   const isAdmin = me?.role === "admin";
+  const canManageTeam = isAdmin || me?.role === "subadmin";
   const queryClient = useQueryClient();
   const [tab, setTab] = useState("people");
   const [search, setSearch] = useState("");
@@ -25,8 +26,8 @@ export default function TeamPage() {
   const [deleteError, setDeleteError] = useState("");
 
   const { data: users, isLoading } = useQuery({
-    queryKey: isAdmin ? ["users"] : ["directory"],
-    queryFn: isAdmin ? fetchUsers : fetchDirectory,
+    queryKey: canManageTeam ? ["users"] : ["directory"],
+    queryFn: canManageTeam ? fetchUsers : fetchDirectory,
   });
 
   const removeUser = useMutation({
@@ -56,7 +57,7 @@ export default function TeamPage() {
   return (
     <div className="mx-auto max-w-[1600px] space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        {isAdmin ? (
+        {canManageTeam ? (
           <div className="flex gap-1 rounded-btn border border-border bg-surface p-1">
             {[
               ["people", "People"],
@@ -101,7 +102,7 @@ export default function TeamPage() {
               <option value="sublead">Sub Lead</option>
               <option value="member">Member</option>
             </select>
-            {isAdmin && (
+            {canManageTeam && (
               <Button
                 onClick={() => {
                   setDialogUser(null);
@@ -130,7 +131,7 @@ export default function TeamPage() {
         ) : filtered.length ? (
           <UserTable
             users={filtered}
-            canEdit={isAdmin}
+            canEdit={canManageTeam}
             onEdit={(u) => {
               setDialogUser(u);
               setDialogOpen(true);
@@ -146,10 +147,10 @@ export default function TeamPage() {
             icon={Users}
             heading={search || roleFilter ? "No people match your filters" : "No people yet"}
             description={
-              isAdmin ? "Create your first user to start building the organization." : undefined
+              canManageTeam ? "Create your first user to start building the organization." : undefined
             }
             action={
-              isAdmin && !search && !roleFilter ? (
+              canManageTeam && !search && !roleFilter ? (
                 <Button
                   onClick={() => {
                     setDialogUser(null);
@@ -163,10 +164,10 @@ export default function TeamPage() {
           />
         )
       ) : (
-        <OrgStructure departments={departments} teams={teams} />
+        <OrgStructure departments={departments} teams={teams} me={me} />
       )}
 
-      {isAdmin && (
+      {canManageTeam && (
         <UserDialog
           open={dialogOpen}
           onClose={() => setDialogOpen(false)}

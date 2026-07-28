@@ -29,8 +29,11 @@ const schema = yup.object({
 export default function UserDialog({ open, onClose: onCloseProp, user, directory, departments, teams, actor }) {
   const isEdit = Boolean(user);
   const isSubadminActor = actor?.role === "subadmin";
+  const managedDepartmentId = actor?.managedDepartment?._id || actor?.managedDepartment;
   const visibleTeams = isSubadminActor
-    ? teams.filter((t) => t.department?._id === actor?.managedDepartment?._id)
+    ? managedDepartmentId
+      ? teams.filter((t) => String(t.department?._id || t.department) === String(managedDepartmentId))
+      : []
     : teams;
   const queryClient = useQueryClient();
   const [apiError, setApiError] = useState("");

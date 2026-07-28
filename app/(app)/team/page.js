@@ -17,6 +17,7 @@ export default function TeamPage() {
   const me = useAuthStore((s) => s.user);
   const isAdmin = me?.role === "admin";
   const canManageTeam = isAdmin || me?.role === "subadmin";
+  const canEditUser = (u) => isAdmin || (canManageTeam && !["admin", "manager", "subadmin"].includes(u.role));
   const queryClient = useQueryClient();
   const [tab, setTab] = useState("people");
   const [search, setSearch] = useState("");
@@ -132,7 +133,7 @@ export default function TeamPage() {
         ) : filtered.length ? (
           <UserTable
             users={filtered}
-            canEdit={canManageTeam}
+            canEdit={canEditUser}
             onEdit={(u) => {
               setDialogUser(u);
               setDialogOpen(true);

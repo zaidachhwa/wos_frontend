@@ -40,8 +40,8 @@ Every other area of this spec calls this helper rather than re-deriving the depa
 `backend/src/routes/userRoutes.js` / `userController.js`: `authorize("admin")` becomes `authorize("admin", "subadmin")` on create/list/update/deactivate routes. Inside each controller action, branch on `req.user.role`:
 
 - **List**: admin → unchanged (`User.find({isActive:true})`). Subadmin → `User.find({isActive:true, team: {$in: managedTeamIds}, role: {$nin: ["admin","subadmin"]}})` — admins/subadmins are invisible to a subadmin's user list entirely, not just protected from edits.
-- **Create**: subadmin may only set `team` to one of their managed teams (`department` is then set to match that team's department, keeping the existing `User.team`/`User.department` dual-field convention in sync — same as admin-created users today). Requested `role` must not be `admin`/`subadmin`, else 403.
-- **Update/deactivate**: subadmin may only act on a target user whose `_id` is in `getManagedUserIds(req.user)`. If changing `team`, the new team must also be one of the subadmin's managed teams. If the target's current or requested role is `admin`/`subadmin`, 403.
+- **Create**: subadmin may only set `team` to one of their managed teams (`department` is then set to match that team's department, keeping the existing `User.team`/`User.department` dual-field convention in sync — same as admin-created users today). Requested `role` must not be `admin`/`manager`/`subadmin`, else 403.
+- **Update/deactivate**: subadmin may only act on a target user whose `_id` is in `getManagedUserIds(req.user)`. If changing `team`, the new team must also be one of the subadmin's managed teams. If the target's current or requested role is `admin`/`manager`/`subadmin`, 403.
 
 ## Team management
 

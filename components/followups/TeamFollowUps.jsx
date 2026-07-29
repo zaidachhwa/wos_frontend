@@ -98,7 +98,7 @@ export default function TeamFollowUps({ today, canReview }) {
           ))}
         </div>
       ) : (
-        <EmptyState icon={MessageSquare} heading="No reports found" description="People reporting to you will appear here." />
+        <EmptyState icon={MessageSquare} heading="No follow-ups found" description="People on your team will appear here." />
       )}
 
       <Dialog

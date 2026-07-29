@@ -22,6 +22,7 @@ import useToast from "@/hooks/useToast";
 import { isTaskOverdue } from "@/lib/taskDates";
 import { taskPointCeiling, maxBonusFor } from "@/constants/points.constants";
 import { fetchPointsConfig } from "@/services/leaderboardService";
+import { fetchModules } from "@/services/projectService";
 
 const STATUSES = ["backlog", "todo", "in_progress", "review", "testing", "completed", "blocked"];
 const PRIORITIES = ["low", "medium", "high", "critical"];
@@ -55,6 +56,12 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
     queryFn: fetchPointsConfig,
     enabled: open,
     staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: projectModules = [] } = useQuery({
+    queryKey: ["modules", task?.project],
+    queryFn: () => fetchModules(task.project),
+    enabled: open && Boolean(task?.project),
   });
 
   useEffect(() => {
@@ -137,7 +144,7 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
   if (!open) return null;
 
   const isAssignee = task?.assignees?.some((a) => a._id === me?._id);
-  const canManage = ["admin", "manager", "sublead"].includes(me?.role);
+  const canManage = ["admin", "manager", "subadmin", "sublead"].includes(me?.role);
   const canEditStatus = canManage || isAssignee;
 
   const toggleSubtask = (index) => {
@@ -216,6 +223,15 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
             disabled={!canManage || patch.isPending}
             onChange={(assignees) => patch.mutate({ assignees })}
             placeholder="Select assignees…"
+          />
+
+          <MultiSelect
+            label="Modules"
+            items={projectModules}
+            value={(task.modules || []).map((m) => m._id || m)}
+            disabled={!canManage || patch.isPending}
+            onChange={(modules) => patch.mutate({ modules })}
+            placeholder="None"
           />
 
           {task.blockedBy?.length > 0 && (

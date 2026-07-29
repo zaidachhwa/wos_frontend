@@ -80,7 +80,7 @@ export default function TaskDialog({ open, onClose: onCloseProp, projects, direc
     if (open) {
       reset({
         project: task?.project || "",
-        module: task?.module || "",
+        modules: task?.modules?.map((m) => m._id || m) || [],
         title: task?.title || "",
         description: task?.description || "",
         assignees: task?.assignees?.map((a) => a._id || a) || [],
@@ -101,7 +101,7 @@ export default function TaskDialog({ open, onClose: onCloseProp, projects, direc
     mutationFn: (values) =>
       createTask({
         ...values,
-        module: values.module || null,
+        modules: values.modules || [],
         estimatedHours: values.estimatedHours ? Number(values.estimatedHours) : undefined,
         deadline: values.deadline || null,
         startTime: values.startTime || null,
@@ -154,14 +154,20 @@ export default function TaskDialog({ open, onClose: onCloseProp, projects, direc
               </option>
             ))}
           </Select>
-          <Select label="Module" {...register("module")}>
-            <option value="">None</option>
-            {modules.map((m) => (
-              <option key={m._id} value={m._id}>
-                {m.name}
-              </option>
-            ))}
-          </Select>
+          <Controller
+            name="modules"
+            control={control}
+            defaultValue={[]}
+            render={({ field }) => (
+              <MultiSelect
+                label="Modules"
+                items={modules}
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="None"
+              />
+            )}
+          />
         </div>
         <Input label="Title" error={errors.title?.message} {...register("title")} />
         <Textarea label="Description" {...register("description")} />

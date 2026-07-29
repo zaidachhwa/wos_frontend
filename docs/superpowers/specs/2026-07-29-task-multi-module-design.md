@@ -27,7 +27,7 @@ Backend schema/logic change plus two frontend surfaces (task creation, task edit
 ## Frontend
 
 - **`TaskDialog.jsx`** (task creation): replace the single `<Select label="Module">` with the existing `MultiSelect` component (already used elsewhere in this app for project members/assignees — no new component). Form field renamed `modules`, defaults to `[]`; submission payload sends `modules: values.modules || []`.
-- **`TaskDrawer.jsx`** (existing-task view — currently has no module UI at all, module is only ever set at creation today): add a Modules field using the same `MultiSelect`, wired to `PATCH /tasks/:id`. Visible/editable only for the roles that already get full task-editing rights (sublead/manager/admin/subadmin) — matching the existing `FULL_FIELDS` vs `ASSIGNEE_FIELDS` split; a plain assignee does not see or edit it, same as every other full-edit-only field today.
+- **`TaskDrawer.jsx`** (existing-task view — currently has no module UI at all, module is only ever set at creation today): add a Modules field using the same `MultiSelect`, wired to `PATCH /tasks/:id`. Editable only for the roles that already get full task-editing rights (sublead/manager/admin/subadmin) — matching the existing `FULL_FIELDS` vs `ASSIGNEE_FIELDS` split; a plain assignee sees it rendered but disabled, same as this view's existing Priority/Assignees fields for that role, not hidden outright.
 
 ## Testing / verification plan
 

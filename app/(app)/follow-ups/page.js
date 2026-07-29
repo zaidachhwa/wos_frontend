@@ -22,8 +22,8 @@ const localDay = () => {
 
 export default function FollowUpsPage() {
   const me = useAuthStore((s) => s.user);
-  const hasTeamView = ["admin", "manager", "sublead"].includes(me?.role);
-  const canReview = ["admin", "manager"].includes(me?.role);
+  const hasTeamView = ["admin", "manager", "subadmin", "sublead"].includes(me?.role);
+  const canReview = ["admin", "manager", "subadmin", "sublead"].includes(me?.role);
   const [tab, setTab] = useState("mine");
   const [historyPage, setHistoryPage] = useState(1);
   const today = localDay();

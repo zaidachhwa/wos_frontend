@@ -97,7 +97,7 @@ export default function ModuleDialog({ open, onClose: onCloseProp, projectId, mo
               className="mr-auto"
               disabled={remove.isPending}
               onClick={() => {
-                if (window.confirm(`Delete module "${module.name}"? Its tasks will be deleted too.`)) {
+                if (window.confirm(`Delete module "${module.name}"? Tasks with only this module will be deleted; tasks in another module too will keep those.`)) {
                   remove.mutate();
                 }
               }}

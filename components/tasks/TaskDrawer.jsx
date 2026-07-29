@@ -81,6 +81,7 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
     queryClient.invalidateQueries({ queryKey: ["task", taskStub?._id] });
     queryClient.invalidateQueries({ queryKey: ["tasks"] });
     if (task?.project) queryClient.invalidateQueries({ queryKey: ["project", String(task.project)] });
+    if (task?.project) queryClient.invalidateQueries({ queryKey: ["modules", String(task.project)] });
   };
 
   const showError = (e) => {
@@ -146,6 +147,9 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
   const isAssignee = task?.assignees?.some((a) => a._id === me?._id);
   const canManage = ["admin", "manager", "subadmin", "sublead"].includes(me?.role);
   const canEditStatus = canManage || isAssignee;
+  // Comment moderation is deliberately narrower than canManage: backend's
+  // COMMENT_MODERATOR_ROLES excludes subadmin (no project-scope check there).
+  const canModerateComments = ["admin", "manager", "sublead"].includes(me?.role);
 
   const toggleSubtask = (index) => {
     const subtasks = task.subtasks.map((s, i) => (i === index ? { ...s, done: !s.done } : s));
@@ -420,7 +424,7 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
             <ul className="mt-2 space-y-3">
               {(task.comments || []).map((c) => {
                 const isOwn = c.user?._id === me?._id;
-                const canEdit = isOwn || canManage;
+                const canEdit = isOwn || canModerateComments;
                 const canDelete = isOwn || me?.role === "admin";
                 const isEditing = editingCommentId === c._id;
                 return (

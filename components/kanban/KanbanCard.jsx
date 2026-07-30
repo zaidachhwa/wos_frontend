@@ -9,7 +9,10 @@ export default function KanbanCard({ task, onOpen }) {
       className="w-full cursor-grab rounded-card border border-border bg-surface p-4 text-left transition-all duration-150 hover:border-muted/40 hover:shadow-sm active:cursor-grabbing"
     >
       <p className="flex items-start justify-between gap-2 text-sm font-medium leading-snug">
-        <span>{task.title}</span>
+        <span className="flex items-center gap-1.5">
+          {task.type === "bug" && <Badge value="bug" />}
+          {task.title}
+        </span>
         {["pending", "rejected"].includes(task.approvalStatus) && (
           <span className="shrink-0">
             <Badge value={task.approvalStatus} />

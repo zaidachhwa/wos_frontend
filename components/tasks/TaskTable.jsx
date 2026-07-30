@@ -53,6 +53,7 @@ export default function TaskTable({ tasks, onOpen, selected, onToggleSelect, onT
               )}
               <td className="max-w-[140px] px-4 py-3 sm:max-w-xs">
                 <p className="flex items-center gap-1.5">
+                  {t.type === "bug" && <Badge value="bug" />}
                   <span className="truncate font-medium">{t.title}</span>
                   {["pending", "rejected"].includes(t.approvalStatus) && <Badge value={t.approvalStatus} />}
                 </p>

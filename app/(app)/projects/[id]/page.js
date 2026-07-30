@@ -17,6 +17,7 @@ import ModuleDialog from "@/components/projects/ModuleDialog";
 import HealthCard from "@/components/projects/HealthCard";
 import TaskTable from "@/components/tasks/TaskTable";
 import TaskDrawer from "@/components/tasks/TaskDrawer";
+import TaskDialog from "@/components/tasks/TaskDialog";
 import TimelineView from "@/components/projects/TimelineView";
 import { useAuthStore } from "@/store/authStore";
 import { fetchProject, deleteProject } from "@/services/projectService";
@@ -24,7 +25,7 @@ import { fetchTasks } from "@/services/taskService";
 import { fetchDirectory } from "@/services/orgService";
 import { fetchActivity } from "@/services/notificationService";
 
-const TABS = ["overview", "modules", "tasks", "timeline", "activity"];
+const TABS = ["overview", "modules", "bugs", "tasks", "timeline", "activity"];
 
 export default function ProjectDetailsPage({ params }) {
   const { id } = use(params);
@@ -35,6 +36,7 @@ export default function ProjectDetailsPage({ params }) {
   const [editOpen, setEditOpen] = useState(false);
   const [moduleDialog, setModuleDialog] = useState({ open: false, module: null });
   const [openTask, setOpenTask] = useState(null);
+  const [bugDialogOpen, setBugDialogOpen] = useState(false);
 
   const { data: project, isLoading } = useQuery({ queryKey: ["project", id], queryFn: () => fetchProject(id) });
   const { data: directory = [] } = useQuery({ queryKey: ["directory"], queryFn: fetchDirectory });
@@ -42,6 +44,13 @@ export default function ProjectDetailsPage({ params }) {
     queryKey: ["tasks", { project: id }],
     queryFn: () => fetchTasks({ project: id }),
     enabled: tab === "tasks" || tab === "timeline",
+  });
+  const { data: bugs = [] } = useQuery({
+    queryKey: ["tasks", { project: id, type: "bug" }],
+    // ponytail: backend's GET /tasks ignores the `type` filter (verified via curl), so
+    // filter client-side too; drop this .filter once the backend honors `type`.
+    queryFn: () => fetchTasks({ project: id, type: "bug" }).then((ts) => ts.filter((t) => t.type === "bug")),
+    enabled: tab === "bugs",
   });
   const { data: activity = [] } = useQuery({
     queryKey: ["activity", id],
@@ -221,6 +230,23 @@ export default function ProjectDetailsPage({ params }) {
         </div>
       )}
 
+      {tab === "bugs" && (
+        <div className="space-y-4">
+          {canManage && (
+            <div className="flex justify-end">
+              <Button onClick={() => setBugDialogOpen(true)}>
+                <Plus size={16} /> New bug
+              </Button>
+            </div>
+          )}
+          {bugs.length ? (
+            <TaskTable tasks={bugs} onOpen={setOpenTask} />
+          ) : (
+            <EmptyState icon={ClipboardList} heading="No bugs logged for this project" />
+          )}
+        </div>
+      )}
+
       {tab === "tasks" &&
         (tasks.length ? (
           <TaskTable tasks={tasks} onOpen={setOpenTask} />
@@ -245,6 +271,14 @@ export default function ProjectDetailsPage({ params }) {
         directory={directory}
       />
       <TaskDrawer task={openTask} onClose={() => setOpenTask(null)} directory={directory} project={project} />
+      <TaskDialog
+        open={bugDialogOpen}
+        onClose={() => setBugDialogOpen(false)}
+        projects={[project]}
+        directory={directory}
+        lockedProjectId={id}
+        forceType="bug"
+      />
     </div>
   );
 }

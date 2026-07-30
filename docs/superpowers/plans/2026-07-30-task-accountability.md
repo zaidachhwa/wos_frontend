@@ -43,7 +43,6 @@
 
 **Frontend — modified:**
 - `frontend/lib/taskDates.js` — `isTaskOverdue` exemption (mirrors backend).
-- `frontend/constants/points.constants.js` — new penalty fallback constants.
 - `frontend/components/ui/Badge.jsx` — `bug`, `client_review` tones.
 - `frontend/components/tasks/TaskDrawer.jsx` — `client_review` in `STATUSES`, bug reference field, time-in-status section.
 - `frontend/app/(app)/tasks/page.js` — `client_review` in `STATUSES`.
@@ -338,13 +337,19 @@ export default mongoose.model("LeaderboardConfig", leaderboardConfigSchema);
 
 - [ ] **Step 4: Add the new constants**
 
-In `backend/src/constants/points.constants.js`, add below the existing lines:
+In `backend/src/constants/points.constants.js`, replace:
+
+```js
+export const OVERDUE_PENALTY = 5;
+```
+
+with:
 
 ```js
 export const PENALTIES = { completedLate: 5, overdue: 2, bug: 1 };
 ```
 
-(`OVERDUE_PENALTY` stays — Step 5 changes how it's read, not the constant itself, since `PENALTIES.completedLate` is the new default source of truth alongside it. Leave `OVERDUE_PENALTY` defined but stop importing it in `points.js`.)
+(`OVERDUE_PENALTY` is fully retired here, not left as dead code — Step 6 removes its one remaining import/use in `points.js`, and `PENALTIES.completedLate` carries the same default value forward as the new single source of truth.)
 
 - [ ] **Step 5: Extend `pointsConfig.js`**
 

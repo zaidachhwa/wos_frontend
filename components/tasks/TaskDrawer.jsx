@@ -241,7 +241,7 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
 
           <p className="text-xs text-muted">
             Worth up to{" "}
-            <span className="font-medium text-primary">{taskPointCeiling(task.priority, pointsConfig)} pts</span> on
+            <span className="font-medium text-primary">{taskPointCeiling(task.priority, pointsConfig?.pointsByPriority)} pts</span> on
             the leaderboard
           </p>
 
@@ -363,13 +363,13 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
             <div className="flex flex-wrap items-end gap-3 rounded-card border border-border bg-background/60 p-4">
               <div>
                 <label htmlFor="task-bonus-points" className="text-xs text-muted">
-                  Bonus points (0–{maxBonusFor(task.priority, pointsConfig)})
+                  Bonus points (0–{maxBonusFor(task.priority, pointsConfig?.pointsByPriority)})
                 </label>
                 <input
                   id="task-bonus-points"
                   type="number"
                   min="0"
-                  max={maxBonusFor(task.priority, pointsConfig)}
+                  max={maxBonusFor(task.priority, pointsConfig?.pointsByPriority)}
                   step="1"
                   value={bonusPointsDraft}
                   onChange={(e) => setBonusPointsDraft(e.target.value)}

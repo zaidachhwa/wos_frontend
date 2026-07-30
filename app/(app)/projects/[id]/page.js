@@ -47,9 +47,7 @@ export default function ProjectDetailsPage({ params }) {
   });
   const { data: bugs = [] } = useQuery({
     queryKey: ["tasks", { project: id, type: "bug" }],
-    // ponytail: backend's GET /tasks ignores the `type` filter (verified via curl), so
-    // filter client-side too; drop this .filter once the backend honors `type`.
-    queryFn: () => fetchTasks({ project: id, type: "bug" }).then((ts) => ts.filter((t) => t.type === "bug")),
+    queryFn: () => fetchTasks({ project: id, type: "bug" }),
     enabled: tab === "bugs",
   });
   const { data: activity = [] } = useQuery({

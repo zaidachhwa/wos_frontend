@@ -13,7 +13,7 @@ import Pagination from "@/components/ui/Pagination";
 import { Button } from "@/components/ui/Field";
 import { useAuthStore } from "@/store/authStore";
 import { fetchProjectsPage } from "@/services/projectService";
-import { fetchDirectory } from "@/services/orgService";
+import { fetchDirectory, fetchTeams } from "@/services/orgService";
 import { PROJECT_STATUSES, PROJECT_TYPES } from "@/constants/project.constants";
 
 const PAGE_SIZE = 12;
@@ -24,15 +24,18 @@ export default function ProjectsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
+  const [teamFilter, setTeamFilter] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["projects", { page, limit: PAGE_SIZE, status: statusFilter, type: typeFilter, search }],
-    queryFn: () => fetchProjectsPage({ page, limit: PAGE_SIZE, status: statusFilter, type: typeFilter, search }),
+    queryKey: ["projects", { page, limit: PAGE_SIZE, status: statusFilter, type: typeFilter, team: teamFilter, search }],
+    queryFn: () =>
+      fetchProjectsPage({ page, limit: PAGE_SIZE, status: statusFilter, type: typeFilter, team: teamFilter, search }),
     placeholderData: (prev) => prev,
   });
   const { data: directory = [] } = useQuery({ queryKey: ["directory"], queryFn: fetchDirectory });
+  const { data: teams = [] } = useQuery({ queryKey: ["teams"], queryFn: fetchTeams });
 
   const projects = data?.projects || [];
   const pagination = data?.pagination;
@@ -44,6 +47,11 @@ export default function ProjectsPage() {
 
   const changeTypeFilter = (value) => {
     setTypeFilter(value);
+    setPage(1);
+  };
+
+  const changeTeamFilter = (value) => {
+    setTeamFilter(value);
     setPage(1);
   };
 
@@ -86,6 +94,19 @@ export default function ProjectsPage() {
             {PROJECT_TYPES.map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
+              </option>
+            ))}
+          </select>
+          <select
+            aria-label="Filter by team"
+            value={teamFilter}
+            onChange={(e) => changeTeamFilter(e.target.value)}
+            className="rounded-input border border-border bg-surface px-3 py-2 text-sm outline-none transition-colors duration-150 focus:border-primary"
+          >
+            <option value="">All teams</option>
+            {teams.map((t) => (
+              <option key={t._id} value={t._id}>
+                {t.name}
               </option>
             ))}
           </select>

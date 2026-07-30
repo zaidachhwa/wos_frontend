@@ -25,6 +25,7 @@ const COLUMNS = [
   ["in_progress", "In Progress"],
   ["review", "Review"],
   ["testing", "Testing"],
+  ["client_review", "Client review"],
   ["completed", "Completed"],
   ["blocked", "Blocked"],
 ];

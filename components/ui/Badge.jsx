@@ -7,6 +7,7 @@ const TONES = {
 };
 
 const VALUE_TONES = {
+  bug: "danger",
   // priority
   low: "muted",
   medium: "info",
@@ -18,6 +19,7 @@ const VALUE_TONES = {
   in_progress: "info",
   review: "warning",
   testing: "warning",
+  client_review: "warning",
   completed: "success",
   blocked: "danger",
   // project status

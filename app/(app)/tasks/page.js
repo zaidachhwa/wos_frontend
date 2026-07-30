@@ -21,7 +21,7 @@ import { fetchDirectory } from "@/services/orgService";
 import useToast from "@/hooks/useToast";
 import { isTaskOverdue } from "@/lib/taskDates";
 
-const STATUSES = ["backlog", "todo", "in_progress", "review", "testing", "completed", "blocked"];
+const STATUSES = ["backlog", "todo", "in_progress", "review", "testing", "client_review", "completed", "blocked"];
 
 const startOfDay = (offset = 0) => {
   const d = new Date();

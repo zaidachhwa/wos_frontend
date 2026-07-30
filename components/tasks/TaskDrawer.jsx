@@ -24,7 +24,7 @@ import { taskPointCeiling, maxBonusFor } from "@/constants/points.constants";
 import { fetchPointsConfig } from "@/services/leaderboardService";
 import { fetchModules } from "@/services/projectService";
 
-const STATUSES = ["backlog", "todo", "in_progress", "review", "testing", "completed", "blocked"];
+const STATUSES = ["backlog", "todo", "in_progress", "review", "testing", "client_review", "completed", "blocked"];
 const PRIORITIES = ["low", "medium", "high", "critical"];
 
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString() : "—");

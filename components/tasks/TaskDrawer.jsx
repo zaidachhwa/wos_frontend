@@ -30,6 +30,24 @@ const PRIORITIES = ["low", "medium", "high", "critical"];
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString() : "—");
 const fmtTime = (t) => t || "—";
 
+const fmtDuration = (ms) => {
+  if (!ms || ms < 60000) return "< 1m";
+  const totalMinutes = Math.round(ms / 60000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return hours ? `${hours}h ${minutes}m` : `${minutes}m`;
+};
+
+const STATUS_LABELS = {
+  backlog: "Backlog",
+  todo: "To do",
+  in_progress: "In progress",
+  review: "Review",
+  testing: "Testing",
+  client_review: "Client review",
+  blocked: "Blocked",
+};
+
 export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) {
   const me = useAuthStore((s) => s.user);
   const queryClient = useQueryClient();
@@ -185,6 +203,13 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
             <p className="text-xs text-muted">
               <Badge value={`Repeats: ${task.recurrence.frequency}`} tone="info" />
             </p>
+          )}
+
+          {task.type === "bug" && (
+            <div className="flex items-center gap-2">
+              <Badge value="bug" />
+              {task.reference && <p className="text-xs text-muted">Reference: {task.reference}</p>}
+            </div>
           )}
 
           <div className="grid grid-cols-2 gap-4">
@@ -418,6 +443,27 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
               </div>
             )}
           </section>
+
+          {task.statusDurations && Object.keys(task.statusDurations).length > 0 && (
+            <section>
+              <h3 className="text-sm font-semibold">Time in status</h3>
+              <ul className="mt-2 space-y-1 text-sm">
+                {Object.entries(task.statusDurations).map(([status, ms]) => (
+                  <li key={status} className="flex items-center justify-between text-muted">
+                    <span>
+                      {STATUS_LABELS[status] || status}
+                      {status === task.status && task.status !== "completed" ? " (ongoing)" : ""}
+                    </span>
+                    <span className="tabular-nums">{fmtDuration(ms)}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 flex items-center justify-between border-t border-border pt-2 text-sm font-medium">
+                <span>Total working time</span>
+                <span className="tabular-nums text-primary">{fmtDuration(task.totalWorkingMs)}</span>
+              </p>
+            </section>
+          )}
 
           <section>
             <h3 className="text-sm font-semibold">Comments</h3>

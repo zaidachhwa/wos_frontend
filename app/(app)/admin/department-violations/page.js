@@ -45,7 +45,7 @@ export default function DepartmentViolationsPage() {
               <li key={v._id} className="rounded-input border border-border/60 bg-background/60 px-3 py-2 text-sm">
                 <span className="font-medium">{v.project?.name || "Deleted project"}</span>
                 <span className="ml-2 text-muted">
-                  spans: {v.departments.map((d) => d.name).join(", ")}
+                  spans: {v.departments.filter(Boolean).map((d) => d.name).join(", ") || "—"}
                 </span>
               </li>
             ))}

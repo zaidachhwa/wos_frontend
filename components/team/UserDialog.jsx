@@ -20,8 +20,8 @@ const schema = yup.object({
   }),
   role: yup.string().oneOf(["admin", "manager", "subadmin", "sublead", "member"]).required(),
   managedDepartment: yup.string().when("role", {
-    is: "subadmin",
-    then: (s) => s.required("Managed department is required for the subadmin role"),
+    is: (role) => role === "subadmin" || role === "manager",
+    then: (s) => s.required("Managed department is required for this role"),
     otherwise: (s) => s.strip(),
   }),
 });
@@ -77,7 +77,8 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
         department: values.department || null,
         team: values.team || null,
         reportingManager: values.reportingManager || null,
-        managedDepartment: values.role === "subadmin" ? values.managedDepartment || null : null,
+        managedDepartment:
+          values.role === "subadmin" || values.role === "manager" ? values.managedDepartment || null : null,
         isActive: values.isActive === "true",
       };
       if (isEdit) {
@@ -145,7 +146,7 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
             ))}
           </Select>
         )}
-        {selectedRole === "subadmin" && (
+        {(selectedRole === "subadmin" || selectedRole === "manager") && (
           <div className="animate-[fadeIn_150ms_ease-out]">
             <Select
               label="Managed department"

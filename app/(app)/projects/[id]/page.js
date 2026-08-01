@@ -14,6 +14,7 @@ import ProgressBar from "@/components/shared/ProgressBar";
 import ActivityFeed from "@/components/shared/ActivityFeed";
 import ProjectDialog from "@/components/projects/ProjectDialog";
 import ModuleDialog from "@/components/projects/ModuleDialog";
+import ModuleTasksDrawer from "@/components/projects/ModuleTasksDrawer";
 import HealthCard from "@/components/projects/HealthCard";
 import TaskTable from "@/components/tasks/TaskTable";
 import TaskDrawer from "@/components/tasks/TaskDrawer";
@@ -35,6 +36,7 @@ export default function ProjectDetailsPage({ params }) {
   const [tab, setTab] = useState("overview");
   const [editOpen, setEditOpen] = useState(false);
   const [moduleDialog, setModuleDialog] = useState({ open: false, module: null });
+  const [selectedModule, setSelectedModule] = useState(null);
   const [openTask, setOpenTask] = useState(null);
   const [bugDialogOpen, setBugDialogOpen] = useState(false);
 
@@ -187,14 +189,29 @@ export default function ProjectDetailsPage({ params }) {
           {project.modules?.length ? (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
               {project.modules.map((m) => (
-                <div key={m._id} className="rounded-card border border-border bg-surface p-6">
+                <div
+                  key={m._id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setSelectedModule(m)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setSelectedModule(m);
+                    }
+                  }}
+                  className="cursor-pointer rounded-card border border-border bg-surface p-6 transition-colors duration-150 hover:bg-background"
+                >
                   <div className="flex items-start justify-between gap-2">
                     <p className="truncate font-semibold">{m.name}</p>
                     <div className="flex items-center gap-1">
                       <Badge value={m.status} />
                       {canManageModules && (
                         <button
-                          onClick={() => setModuleDialog({ open: true, module: m })}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setModuleDialog({ open: true, module: m });
+                          }}
                           aria-label={`Edit ${m.name}`}
                           className="rounded-btn p-1 text-muted transition-colors duration-150 hover:bg-background hover:text-primary"
                         >
@@ -267,6 +284,12 @@ export default function ProjectDetailsPage({ params }) {
         projectId={id}
         module={moduleDialog.module}
         directory={directory}
+      />
+      <ModuleTasksDrawer
+        module={selectedModule}
+        projectId={id}
+        onClose={() => setSelectedModule(null)}
+        onOpenTask={setOpenTask}
       />
       <TaskDrawer task={openTask} onClose={() => setOpenTask(null)} directory={directory} project={project} />
       <TaskDialog

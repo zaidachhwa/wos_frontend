@@ -35,10 +35,9 @@ const bucketOf = (t) => {
   const dl = new Date(t.deadline);
   if (isTaskOverdue(t)) return "Overdue";
   if (dl < startOfDay(1)) return "Today";
-  if (dl < startOfDay(8)) return "This week";
-  return "Later";
+  return "Upcoming";
 };
-const BUCKET_ORDER = ["Overdue", "Today", "This week", "Later", "No deadline"];
+const BUCKET_ORDER = ["Overdue", "Today", "Upcoming", "No deadline"];
 
 export default function TasksPage() {
   const me = useAuthStore((s) => s.user);
@@ -151,19 +150,6 @@ export default function TasksPage() {
           {scope !== "approvals" && (
             <>
               <select
-                aria-label="Filter by status"
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className="rounded-input border border-border bg-surface px-3 py-2 text-sm outline-none transition-colors duration-150 focus:border-primary"
-              >
-                <option value="">All statuses</option>
-                {STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {s.replace("_", " ")}
-                  </option>
-                ))}
-              </select>
-              <select
                 aria-label="Filter by project"
                 value={projectFilter}
                 onChange={(e) => setProjectFilter(e.target.value)}
@@ -217,6 +203,28 @@ export default function TasksPage() {
                 }`}
               >
                 {bucket} <span className="tabular-nums">({list.length})</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-1.5 px-0.5">
+            <button
+              onClick={() => setStatus("")}
+              className={`rounded-full border px-2.5 py-1 text-xs font-medium capitalize transition-colors duration-150 ${
+                status === "" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted hover:text-primary"
+              }`}
+            >
+              All statuses
+            </button>
+            {STATUSES.map((s) => (
+              <button
+                key={s}
+                onClick={() => setStatus(s === status ? "" : s)}
+                className={`rounded-full border px-2.5 py-1 text-xs font-medium capitalize transition-colors duration-150 ${
+                  status === s ? "border-primary bg-primary/10 text-primary" : "border-border text-muted hover:text-primary"
+                }`}
+              >
+                {s.replace("_", " ")}
               </button>
             ))}
           </div>

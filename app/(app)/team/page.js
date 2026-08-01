@@ -22,6 +22,7 @@ export default function TeamPage() {
   const [tab, setTab] = useState("people");
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
+  const [departmentFilter, setDepartmentFilter] = useState("");
   const [dialogUser, setDialogUser] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteError, setDeleteError] = useState("");
@@ -52,8 +53,9 @@ export default function TeamPage() {
       );
     }
     if (roleFilter) list = list.filter((u) => u.role === roleFilter);
+    if (departmentFilter) list = list.filter((u) => u.department?._id === departmentFilter);
     return list;
-  }, [users, search, roleFilter]);
+  }, [users, search, roleFilter, departmentFilter]);
 
   return (
     <div className="mx-auto max-w-[1600px] space-y-6">
@@ -103,6 +105,19 @@ export default function TeamPage() {
               <option value="subadmin">Sub Admin</option>
               <option value="sublead">Sub Lead</option>
               <option value="member">Member</option>
+            </select>
+            <select
+              aria-label="Filter by department"
+              value={departmentFilter}
+              onChange={(e) => setDepartmentFilter(e.target.value)}
+              className="rounded-input border border-border bg-surface px-3 py-2 text-sm outline-none transition-colors duration-150 focus:border-primary"
+            >
+              <option value="">All departments</option>
+              {departments.map((d) => (
+                <option key={d._id} value={d._id}>
+                  {d.name}
+                </option>
+              ))}
             </select>
             {canManageTeam && (
               <Button

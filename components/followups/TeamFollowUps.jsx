@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { MessageSquare } from "lucide-react";
 
@@ -10,6 +10,7 @@ import EmptyState from "@/components/ui/EmptyState";
 import Skeleton from "@/components/ui/Skeleton";
 import { Input, Select, Textarea, Button } from "@/components/ui/Field";
 import { fetchFollowUps, reviewFollowUp } from "@/services/followupService";
+import { fetchDepartments } from "@/services/orgService";
 import useToast from "@/hooks/useToast";
 
 const FIELD_LABELS = {
@@ -29,6 +30,7 @@ export default function TeamFollowUps({ today, canReview }) {
   const toast = useToast();
   const [date, setDate] = useState(today);
   const [type, setType] = useState("morning");
+  const [departmentFilter, setDepartmentFilter] = useState("");
   const [reviewing, setReviewing] = useState(null);
   const [comment, setComment] = useState("");
   const [apiError, setApiError] = useState("");
@@ -37,6 +39,12 @@ export default function TeamFollowUps({ today, canReview }) {
     queryKey: ["followups", "team", date, type],
     queryFn: () => fetchFollowUps({ scope: "team", date, type }),
   });
+  const { data: departments = [] } = useQuery({ queryKey: ["departments"], queryFn: fetchDepartments });
+
+  const filteredRows = useMemo(() => {
+    if (!departmentFilter) return rows || [];
+    return (rows || []).filter((row) => String(row.user?.department) === departmentFilter);
+  }, [rows, departmentFilter]);
 
   const review = useMutation({
     onMutate: () => setApiError(""),
@@ -64,13 +72,27 @@ export default function TeamFollowUps({ today, canReview }) {
             <option value="evening">Evening</option>
           </Select>
         </div>
+        <div className="mt-1">
+          <Select
+            aria-label="Filter by department"
+            value={departmentFilter}
+            onChange={(e) => setDepartmentFilter(e.target.value)}
+          >
+            <option value="">All departments</option>
+            {departments.map((d) => (
+              <option key={d._id} value={d._id}>
+                {d.name}
+              </option>
+            ))}
+          </Select>
+        </div>
       </div>
 
       {isLoading ? (
         <Skeleton className="h-40 w-full rounded-card" />
-      ) : rows?.length ? (
+      ) : filteredRows?.length ? (
         <div className="space-y-2">
-          {rows.map((row) => (
+          {filteredRows.map((row) => (
             <div
               key={row._id || row.user._id}
               className={`flex flex-wrap items-center justify-between gap-3 rounded-card border bg-surface px-4 py-3 ${

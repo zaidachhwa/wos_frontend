@@ -189,24 +189,8 @@ export default function TasksPage() {
 
       {scope === "approvals" ? (
         <ApprovalQueue />
-      ) : isLoading ? (
-        <Skeleton className="h-64 w-full rounded-card" />
-      ) : tasks?.length ? (
+      ) : (
         <div className="space-y-4">
-          <div className="flex flex-wrap gap-1 rounded-btn border border-border bg-surface p-1">
-            {groupedTasks.map(([bucket, list]) => (
-              <button
-                key={bucket}
-                onClick={() => setDateTab(bucket)}
-                className={`rounded-[8px] px-3 py-1.5 text-sm font-medium transition-colors duration-150 ${
-                  activeBucket === bucket ? "bg-primary text-primary-foreground" : "text-muted hover:text-primary"
-                }`}
-              >
-                {bucket} <span className="tabular-nums">({list.length})</span>
-              </button>
-            ))}
-          </div>
-
           <div className="flex flex-wrap items-center gap-1.5 px-0.5">
             <button
               onClick={() => setStatus("")}
@@ -229,62 +213,82 @@ export default function TasksPage() {
             ))}
           </div>
 
-          {canBulk && selected.size > 0 && (
-            <div className="sticky top-0 z-10 flex flex-wrap items-center gap-3 rounded-card border border-primary/30 bg-primary/5 p-3">
-              <p className="text-sm font-medium">{selected.size} selected</p>
-              <select
-                aria-label="Bulk set status"
-                value={bulkStatus}
-                onChange={(e) => setBulkStatus(e.target.value)}
-                className="rounded-input border border-border bg-surface px-3 py-2 text-sm outline-none transition-colors duration-150 focus:border-primary"
-              >
-                <option value="">Status unchanged</option>
-                {STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {s.replace("_", " ")}
-                  </option>
+          {isLoading ? (
+            <Skeleton className="h-64 w-full rounded-card" />
+          ) : tasks?.length ? (
+            <div className="space-y-4">
+              <div className="flex flex-wrap gap-1 rounded-btn border border-border bg-surface p-1">
+                {groupedTasks.map(([bucket, list]) => (
+                  <button
+                    key={bucket}
+                    onClick={() => setDateTab(bucket)}
+                    className={`rounded-[8px] px-3 py-1.5 text-sm font-medium transition-colors duration-150 ${
+                      activeBucket === bucket ? "bg-primary text-primary-foreground" : "text-muted hover:text-primary"
+                    }`}
+                  >
+                    {bucket} <span className="tabular-nums">({list.length})</span>
+                  </button>
                 ))}
-              </select>
-              <div className="w-56">
-                <MultiSelect
-                  ariaLabel="Bulk set assignees"
-                  items={directory}
-                  value={bulkAssignees}
-                  onChange={setBulkAssignees}
-                  placeholder="Assignees unchanged"
-                />
               </div>
-              <Button
-                onClick={() => bulkMutation.mutate()}
-                disabled={bulkMutation.isPending || (!bulkStatus && !bulkAssignees.length)}
-              >
-                Apply to {selected.size} tasks
-              </Button>
-              <Button variant="secondary" onClick={clearSelection}>
-                Clear
-              </Button>
-              {bulkMutation.isError && (
-                <p className="w-full text-sm text-danger">
-                  {bulkMutation.error?.response?.data?.message || "Something went wrong"}
-                </p>
-              )}
-            </div>
-          )}
 
-          <TaskTable
-            tasks={activeList}
-            onOpen={setOpenTask}
-            selected={canBulk ? selected : undefined}
-            onToggleSelect={toggleSelect}
-            onToggleSelectAll={toggleSelectAll}
-          />
+              {canBulk && selected.size > 0 && (
+                <div className="sticky top-0 z-10 flex flex-wrap items-center gap-3 rounded-card border border-primary/30 bg-primary/5 p-3">
+                  <p className="text-sm font-medium">{selected.size} selected</p>
+                  <select
+                    aria-label="Bulk set status"
+                    value={bulkStatus}
+                    onChange={(e) => setBulkStatus(e.target.value)}
+                    className="rounded-input border border-border bg-surface px-3 py-2 text-sm outline-none transition-colors duration-150 focus:border-primary"
+                  >
+                    <option value="">Status unchanged</option>
+                    {STATUSES.map((s) => (
+                      <option key={s} value={s}>
+                        {s.replace("_", " ")}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="w-56">
+                    <MultiSelect
+                      ariaLabel="Bulk set assignees"
+                      items={directory}
+                      value={bulkAssignees}
+                      onChange={setBulkAssignees}
+                      placeholder="Assignees unchanged"
+                    />
+                  </div>
+                  <Button
+                    onClick={() => bulkMutation.mutate()}
+                    disabled={bulkMutation.isPending || (!bulkStatus && !bulkAssignees.length)}
+                  >
+                    Apply to {selected.size} tasks
+                  </Button>
+                  <Button variant="secondary" onClick={clearSelection}>
+                    Clear
+                  </Button>
+                  {bulkMutation.isError && (
+                    <p className="w-full text-sm text-danger">
+                      {bulkMutation.error?.response?.data?.message || "Something went wrong"}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <TaskTable
+                tasks={activeList}
+                onOpen={setOpenTask}
+                selected={canBulk ? selected : undefined}
+                onToggleSelect={toggleSelect}
+                onToggleSelectAll={toggleSelectAll}
+              />
+            </div>
+          ) : (
+            <EmptyState
+              icon={CheckSquare}
+              heading="No tasks found"
+              description={scope === "me" ? "Tasks assigned to you will appear here." : "Try changing the filters."}
+            />
+          )}
         </div>
-      ) : (
-        <EmptyState
-          icon={CheckSquare}
-          heading="No tasks found"
-          description={scope === "me" ? "Tasks assigned to you will appear here." : "Try changing the filters."}
-        />
       )}
 
       <TaskDrawer task={openTask} onClose={closeTask} directory={directory} />

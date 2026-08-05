@@ -9,6 +9,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Dialog from "@/components/ui/Dialog";
 import { Input, Textarea, Select, Button } from "@/components/ui/Field";
 import MultiSelect from "@/components/ui/MultiSelect";
+import ClockPicker from "@/components/ui/ClockPicker";
 import { createTask, fetchTasks } from "@/services/taskService";
 import { fetchModules } from "@/services/projectService";
 import { useAuthStore } from "@/store/authStore";
@@ -21,10 +22,19 @@ const REPEAT_OPTIONS = [
   ["monthly", "Monthly"],
 ];
 
+// Rounded to the nearest 5 minutes so the default always lands on one of
+// ClockPicker's minute marks.
 const nowTimeStr = () => {
   const d = new Date();
   const pad = (n) => String(n).padStart(2, "0");
-  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const rounded = (Math.round((d.getHours() * 60 + d.getMinutes()) / 5) * 5) % 1440;
+  return `${pad(Math.floor(rounded / 60))}:${pad(rounded % 60)}`;
+};
+
+const todayStr = () => {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 };
 
 const schema = yup.object({
@@ -96,9 +106,9 @@ export default function TaskDialog({ open, onClose: onCloseProp, projects, direc
         assignees: task?.assignees?.map((a) => a._id || a) || [],
         priority: task?.priority || "low",
         estimatedHours: task?.estimatedHours ?? "",
-        deadline: task?.deadline ? task.deadline.slice(0, 10) : "",
+        deadline: task?.deadline ? task.deadline.slice(0, 10) : todayStr(),
         startTime: task?.startTime || nowTimeStr(),
-        endTime: task?.endTime || "",
+        endTime: task?.endTime || "23:00",
         labels: task?.labels?.join(", ") || "",
         blockedBy: task?.blockedBy?.map((b) => b._id || b) || [],
         recurrence: task?.recurrence?.frequency || "none",
@@ -166,14 +176,24 @@ export default function TaskDialog({ open, onClose: onCloseProp, projects, direc
               </div>
             </div>
           ) : (
-            <Select label="Project" error={errors.project?.message} {...register("project")}>
-              <option value="">Select project…</option>
-              {projects.map((p) => (
-                <option key={p._id} value={p._id}>
-                  {p.name}
-                </option>
-              ))}
-            </Select>
+            <div>
+              <Controller
+                name="project"
+                control={control}
+                defaultValue=""
+                render={({ field }) => (
+                  <MultiSelect
+                    label="Project"
+                    multiple={false}
+                    items={projects}
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="Select project…"
+                  />
+                )}
+              />
+              {errors.project?.message && <p className="mt-1 text-sm text-danger">{errors.project.message}</p>}
+            </div>
           )}
           <div>
             <Controller
@@ -242,8 +262,26 @@ export default function TaskDialog({ open, onClose: onCloseProp, projects, direc
           <Input label="Deadline" type="date" {...register("deadline")} />
         </div>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <Input label="Start time" type="time" error={errors.startTime?.message} {...register("startTime")} />
-          <Input label="End time" type="time" error={errors.endTime?.message} {...register("endTime")} />
+          <div>
+            <Controller
+              name="startTime"
+              control={control}
+              defaultValue=""
+              render={({ field }) => (
+                <ClockPicker label="Start time" value={field.value} onChange={field.onChange} />
+              )}
+            />
+            {errors.startTime?.message && <p className="mt-1 text-sm text-danger">{errors.startTime.message}</p>}
+          </div>
+          <div>
+            <Controller
+              name="endTime"
+              control={control}
+              defaultValue=""
+              render={({ field }) => <ClockPicker label="End time" value={field.value} onChange={field.onChange} />}
+            />
+            {errors.endTime?.message && <p className="mt-1 text-sm text-danger">{errors.endTime.message}</p>}
+          </div>
           <Input label="Labels (comma-separated)" placeholder="frontend, urgent" {...register("labels")} />
           <Select label="Repeats" {...register("recurrence")}>
             {REPEAT_OPTIONS.map(([value, label]) => (

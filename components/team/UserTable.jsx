@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Pencil, Trash2 } from "lucide-react";
 
 import Badge from "@/components/ui/Badge";
@@ -26,7 +27,9 @@ export default function UserTable({ users, canEdit, onEdit, onDelete }) {
           {users.map((u) => (
             <tr key={u._id} className="border-b border-border/60 transition-colors duration-150 last:border-0 hover:bg-background">
               <td className="px-4 py-3">
-                <p className="font-medium">{u.name}</p>
+                <Link href={`/team/${u._id}`} className="font-medium hover:text-primary hover:underline">
+                  {u.name}
+                </Link>
                 {u.email && <p className="text-xs text-muted">{u.email}</p>}
               </td>
               <td className="px-4 py-3">

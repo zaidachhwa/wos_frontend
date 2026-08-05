@@ -10,6 +10,11 @@ export const fetchUsers = async () => {
   return data.data.users;
 };
 
+export const fetchUserById = async (id) => {
+  const { data } = await axiosInstance.get(`/users/${id}`);
+  return data.data.user;
+};
+
 export const createUser = async (payload) => {
   const { data } = await axiosInstance.post("/users", payload);
   return data.data.user;

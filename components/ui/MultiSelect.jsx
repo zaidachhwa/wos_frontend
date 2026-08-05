@@ -3,20 +3,24 @@
 import { useMemo, useState } from "react";
 import { ChevronDown, Search } from "lucide-react";
 
-// Generic multi-select popover: replaces native <select multiple> (which
-// needs ctrl/cmd/shift-click) with a button + checkbox-list popover, click
-// to toggle. Works for any {_id, name}-shaped list — people or tasks.
+// Generic select popover with search: replaces native <select multiple>
+// (which needs ctrl/cmd/shift-click) with a button + checkbox-list popover,
+// click to toggle. Works for any {_id, name}-shaped list — people or tasks.
+// Pass multiple={false} for a searchable single-select (value/onChange are
+// then a plain id string, and picking an item closes the popover).
 export default function MultiSelect({
   label,
   ariaLabel,
   items,
-  value = [],
+  value,
   onChange,
   placeholder = "Select…",
   disabled = false,
+  multiple = true,
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const selected = multiple ? value || [] : value ? [value] : [];
 
   const byId = useMemo(() => new Map(items.map((i) => [i._id, i])), [items]);
   const filtered = useMemo(
@@ -25,16 +29,26 @@ export default function MultiSelect({
   );
 
   const toggle = (id) => {
-    onChange(value.includes(id) ? value.filter((v) => v !== id) : [...value, id]);
+    if (!multiple) {
+      onChange(id);
+      setOpen(false);
+      return;
+    }
+    onChange(selected.includes(id) ? selected.filter((v) => v !== id) : [...selected, id]);
   };
 
-  const summary = value.length
-    ? value
-        .slice(0, 2)
-        .map((id) => byId.get(id)?.name)
-        .filter(Boolean)
-        .join(", ") + (value.length > 2 ? ` +${value.length - 2}` : "")
-    : placeholder;
+  const summary = multiple
+    ? selected.length
+      ? selected
+          .slice(0, 2)
+          .map((id) => byId.get(id)?.name)
+          .filter(Boolean)
+          .join(", ") + (selected.length > 2 ? ` +${selected.length - 2}` : "")
+      : placeholder
+    // Falls back to the raw value (not the placeholder) when it doesn't match
+    // any item — e.g. a time picker opened on a value from before this list
+    // existed, or before it was snapped to these increments.
+    : byId.get(value)?.name || value || placeholder;
 
   return (
     <div className="relative">
@@ -45,10 +59,10 @@ export default function MultiSelect({
         disabled={disabled}
         onClick={() => setOpen((o) => !o)}
         className={`mt-1 flex w-full items-center justify-between gap-2 rounded-input border border-border bg-surface px-3 py-2 text-left text-sm outline-none transition-colors duration-150 focus:border-primary disabled:opacity-50 ${
-          value.length ? "" : "text-muted"
+          selected.length ? "" : "text-muted"
         }`}
       >
-        <span className="truncate">{summary}</span>
+        <span className="flex-1 truncate">{summary}</span>
         <ChevronDown size={15} className="shrink-0 text-muted" />
       </button>
 
@@ -69,13 +83,27 @@ export default function MultiSelect({
             <ul className="max-h-52 overflow-y-auto py-1">
               {filtered.map((item) => (
                 <li key={item._id}>
-                  <label className="flex cursor-pointer items-center gap-2 px-3 py-1.5 text-sm transition-colors duration-150 hover:bg-background">
-                    <input
-                      type="checkbox"
-                      checked={value.includes(item._id)}
-                      onChange={() => toggle(item._id)}
-                      className="accent-primary"
-                    />
+                  <label
+                    className={`flex cursor-pointer items-center gap-2 px-3 py-1.5 text-sm transition-colors duration-150 hover:bg-background ${
+                      !multiple && selected.includes(item._id) ? "bg-background" : ""
+                    }`}
+                  >
+                    {multiple && (
+                      <input
+                        type="checkbox"
+                        checked={selected.includes(item._id)}
+                        onChange={() => toggle(item._id)}
+                        className="accent-primary"
+                      />
+                    )}
+                    {!multiple && (
+                      <input
+                        type="radio"
+                        checked={selected.includes(item._id)}
+                        onChange={() => toggle(item._id)}
+                        className="accent-primary"
+                      />
+                    )}
                     <span className="truncate">{item.name}</span>
                   </label>
                 </li>

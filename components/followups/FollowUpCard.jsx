@@ -6,8 +6,20 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import Badge from "@/components/ui/Badge";
 import { Input, Textarea, Button } from "@/components/ui/Field";
-import { saveFollowUp, fetchFollowUpSuggestion } from "@/services/followupService";
+import { saveFollowUp, fetchFollowUpSuggestion, fetchFollowUps } from "@/services/followupService";
 import useToast from "@/hooks/useToast";
+
+// Subtracts one day from a "YYYY-MM-DD" string without going through a
+// local-timezone Date parse (`new Date("2026-08-05")` parses as UTC
+// midnight, so local .getDate()/.setDate() can land on the wrong day
+// depending on the viewer's timezone) — parse and arithmetic both stay in
+// UTC space, so the result is timezone-independent.
+const dayBefore = (dateStr) => {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const prev = new Date(Date.UTC(y, m - 1, d - 1));
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${prev.getUTCFullYear()}-${pad(prev.getUTCMonth() + 1)}-${pad(prev.getUTCDate())}`;
+};
 
 const FIELDS = {
   morning: [
@@ -39,16 +51,28 @@ export default function FollowUpCard({ type, date, followUp }) {
     enabled: type === "morning" && !locked,
   });
 
+  // Yesterday's evening entry, if they filled one in — preferred over the
+  // task-derived suggestion above since it's what they actually reported,
+  // and it's also where "today's plan" gets prefilled from (remainingWork).
+  const yesterday = dayBefore(date);
+  const { data: yesterdayEvening } = useQuery({
+    queryKey: ["followups", "own", yesterday, "evening"],
+    queryFn: async () => (await fetchFollowUps({ date: yesterday, type: "evening" }))[0],
+    enabled: type === "morning" && !locked,
+  });
+
   const { register, handleSubmit } = useForm({
     // keepDirtyValues (below) re-syncs untouched fields whenever this object changes,
-    // which is also what lets the suggestion prefill in once it resolves after mount
-    // without clobbering anything the user already typed or saved.
+    // which is also what lets the prefills below fill in once they resolve after
+    // mount without clobbering anything the user already typed or saved.
     values: FIELDS[type].reduce((acc, [name]) => {
       const existing = followUp?.[type]?.[name] ?? "";
-      const value =
-        type === "morning" && name === "yesterdayCompleted"
-          ? existing || suggestion?.yesterdayCompleted || ""
-          : existing;
+      let value = existing;
+      if (type === "morning" && name === "yesterdayCompleted") {
+        value = existing || yesterdayEvening?.evening?.completedWork || suggestion?.yesterdayCompleted || "";
+      } else if (type === "morning" && name === "todayPlan") {
+        value = existing || yesterdayEvening?.evening?.remainingWork || "";
+      }
       return { ...acc, [name]: value };
     }, {}),
     // Refetches must not clobber keystrokes typed while a save is in flight.

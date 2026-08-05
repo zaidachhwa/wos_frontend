@@ -13,11 +13,19 @@ import { Button } from "@/components/ui/Field";
 import { useAuthStore } from "@/store/authStore";
 import { fetchUsers, fetchDirectory, fetchDepartments, fetchTeams, deleteUser } from "@/services/orgService";
 
+// Mirrors MANAGEABLE_ROLES in wos_backend/src/controllers/userController.js
+// — which target roles each scoped (non-admin) role may create/edit.
+const MANAGEABLE_ROLES = {
+  subadmin: ["sublead", "member"],
+  manager: ["member"],
+  sublead: ["member"],
+};
+
 export default function TeamPage() {
   const me = useAuthStore((s) => s.user);
   const isAdmin = me?.role === "admin";
-  const canManageTeam = isAdmin || me?.role === "subadmin";
-  const canEditUser = (u) => isAdmin || (canManageTeam && !["admin", "manager", "subadmin"].includes(u.role));
+  const canManageTeam = isAdmin || Boolean(MANAGEABLE_ROLES[me?.role]);
+  const canEditUser = (u) => isAdmin || (MANAGEABLE_ROLES[me?.role] || []).includes(u.role);
   const queryClient = useQueryClient();
   const [tab, setTab] = useState("people");
   const [search, setSearch] = useState("");

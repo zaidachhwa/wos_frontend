@@ -1,14 +1,25 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import Dialog from "@/components/ui/Dialog";
 import { Input, Select, Button } from "@/components/ui/Field";
+import MultiSelect from "@/components/ui/MultiSelect";
 import { createUser, updateUser } from "@/services/orgService";
+
+// Mirrors MANAGEABLE_ROLES in wos_backend/src/controllers/userController.js
+// — which target roles each scoped (non-admin) actor may create/edit.
+const MANAGEABLE_ROLES = {
+  subadmin: ["sublead", "member"],
+  manager: ["member"],
+  sublead: ["member"],
+};
+
+const ROLE_LABELS = { member: "Member", sublead: "Sub Lead", manager: "Manager", subadmin: "Sub Admin", admin: "Admin" };
 
 const schema = yup.object({
   name: yup.string().trim().required("Name is required"),
@@ -20,21 +31,39 @@ const schema = yup.object({
   }),
   role: yup.string().oneOf(["admin", "manager", "subadmin", "sublead", "member"]).required(),
   managedDepartment: yup.string().when("role", {
-    is: (role) => role === "subadmin" || role === "manager",
+    is: "subadmin",
     then: (s) => s.required("Managed department is required for this role"),
+    otherwise: (s) => s.strip(),
+  }),
+  managedTeam: yup.string().when("role", {
+    is: "manager",
+    then: (s) => s.required("Managed team is required for this role"),
     otherwise: (s) => s.strip(),
   }),
 });
 
 export default function UserDialog({ open, onClose: onCloseProp, user, directory, departments, teams, actor }) {
   const isEdit = Boolean(user);
+  const isAdminActor = actor?.role === "admin";
   const isSubadminActor = actor?.role === "subadmin";
+  const selectableRoles = isAdminActor
+    ? ["member", "sublead", "manager", "subadmin", "admin"]
+    : MANAGEABLE_ROLES[actor?.role] || [];
   const managedDepartmentId = actor?.managedDepartment?._id || actor?.managedDepartment;
+  const actorManagedTeamIds =
+    actor?.role === "manager"
+      ? [actor?.managedTeam?._id || actor?.managedTeam].filter(Boolean)
+      : actor?.role === "sublead"
+        ? (actor?.managedTeams || []).map((t) => t._id || t)
+        : null;
   const visibleTeams = isSubadminActor
     ? managedDepartmentId
       ? teams.filter((t) => String(t.department?._id || t.department) === String(managedDepartmentId))
       : []
-    : teams;
+    : actorManagedTeamIds
+      ? teams.filter((t) => actorManagedTeamIds.map(String).includes(String(t._id)))
+      : teams;
+  const teamPickerItems = teams.map((t) => ({ _id: t._id, name: t.department?.name ? `${t.name} — ${t.department.name}` : t.name }));
   const queryClient = useQueryClient();
   const [apiError, setApiError] = useState("");
   const onClose = () => {
@@ -47,6 +76,7 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
     handleSubmit,
     reset,
     watch,
+    control,
     formState: { errors, isSubmitting },
   } = useForm({ resolver: yupResolver(schema), context: { isEdit } });
 
@@ -60,6 +90,8 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
         password: "",
         role: user?.role || "member",
         managedDepartment: user?.managedDepartment?._id || "",
+        managedTeam: user?.managedTeam?._id || user?.managedTeam || "",
+        managedTeams: user?.managedTeams?.map((t) => t._id || t) || [],
         designation: user?.designation || "",
         department: user?.department?._id || "",
         team: user?.team?._id || "",
@@ -77,8 +109,9 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
         department: values.department || null,
         team: values.team || null,
         reportingManager: values.reportingManager || null,
-        managedDepartment:
-          values.role === "subadmin" || values.role === "manager" ? values.managedDepartment || null : null,
+        managedDepartment: values.role === "subadmin" ? values.managedDepartment || null : null,
+        managedTeam: values.role === "manager" ? values.managedTeam || null : null,
+        managedTeams: values.role === "sublead" ? values.managedTeams || [] : [],
         isActive: values.isActive === "true",
       };
       if (isEdit) {
@@ -125,18 +158,14 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
           <Input label="Password" type="password" error={errors.password?.message} {...register("password")} />
         )}
         <Select label="Role" error={errors.role?.message} {...register("role")}>
-          <option value="member">Member</option>
-          <option value="sublead">Sub Lead</option>
-          {!isSubadminActor && (
-            <>
-              <option value="manager">Manager</option>
-              <option value="subadmin">Sub Admin</option>
-              <option value="admin">Admin</option>
-            </>
-          )}
+          {selectableRoles.map((r) => (
+            <option key={r} value={r}>
+              {ROLE_LABELS[r]}
+            </option>
+          ))}
         </Select>
         <Input label="Designation" {...register("designation")} />
-        {!isSubadminActor && (
+        {isAdminActor && (
           <Select label="Department" {...register("department")}>
             <option value="">None</option>
             {departments.map((d) => (
@@ -146,7 +175,7 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
             ))}
           </Select>
         )}
-        {(selectedRole === "subadmin" || selectedRole === "manager") && (
+        {selectedRole === "subadmin" && (
           <div className="animate-[fadeIn_150ms_ease-out]">
             <Select
               label="Managed department"
@@ -162,6 +191,36 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
             </Select>
           </div>
         )}
+        {selectedRole === "manager" && (
+          <div className="animate-[fadeIn_150ms_ease-out]">
+            <Select label="Managed team" error={errors.managedTeam?.message} {...register("managedTeam")}>
+              <option value="">Select team…</option>
+              {teamPickerItems.map((t) => (
+                <option key={t._id} value={t._id}>
+                  {t.name}
+                </option>
+              ))}
+            </Select>
+          </div>
+        )}
+        {selectedRole === "sublead" && (
+          <div className="animate-[fadeIn_150ms_ease-out]">
+            <Controller
+              name="managedTeams"
+              control={control}
+              defaultValue={[]}
+              render={({ field }) => (
+                <MultiSelect
+                  label="Managed teams"
+                  items={isAdminActor ? teamPickerItems : visibleTeams}
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="None yet"
+                />
+              )}
+            />
+          </div>
+        )}
         <Select label="Team" {...register("team")}>
           <option value="">None</option>
           {visibleTeams.map((t) => (
@@ -170,7 +229,7 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
             </option>
           ))}
         </Select>
-        {!isSubadminActor && (
+        {isAdminActor && (
           <Select label="Reporting manager" {...register("reportingManager")}>
             <option value="">None</option>
             {managers

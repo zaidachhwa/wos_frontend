@@ -198,7 +198,7 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
           <div className="animate-[fadeIn_150ms_ease-out]">
             <Select label="Managed team" error={errors.managedTeam?.message} {...register("managedTeam")}>
               <option value="">Select team…</option>
-              {teamPickerItems.map((t) => (
+              {(isAdminActor ? teamPickerItems : visibleTeams).map((t) => (
                 <option key={t._id} value={t._id}>
                   {t.name}
                 </option>

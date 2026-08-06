@@ -57,7 +57,7 @@ export default function FollowUpCard({ type, date, followUp }) {
   const yesterday = dayBefore(date);
   const { data: yesterdayEvening } = useQuery({
     queryKey: ["followups", "own", yesterday, "evening"],
-    queryFn: async () => (await fetchFollowUps({ date: yesterday, type: "evening" }))[0],
+    queryFn: async () => (await fetchFollowUps({ date: yesterday, type: "evening" }))[0] ?? null,
     enabled: type === "morning" && !locked,
   });
 

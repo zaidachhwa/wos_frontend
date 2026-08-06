@@ -14,7 +14,7 @@ import { createUser, updateUser } from "@/services/orgService";
 // Mirrors MANAGEABLE_ROLES in wos_backend/src/controllers/userController.js
 // — which target roles each scoped (non-admin) actor may create/edit.
 const MANAGEABLE_ROLES = {
-  subadmin: ["sublead", "member"],
+  subadmin: ["manager", "sublead", "member"],
   manager: ["member"],
   sublead: ["member"],
 };
@@ -107,7 +107,10 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
       const payload = {
         ...values,
         department: values.department || null,
-        team: values.team || null,
+        // Sub-admin's scope is the whole managedDepartment automatically —
+        // a personal team is irrelevant to what they can see/manage, so
+        // it's not even offered as a field for that role (below).
+        team: values.role === "subadmin" ? null : values.team || null,
         reportingManager: values.reportingManager || null,
         managedDepartment: values.role === "subadmin" ? values.managedDepartment || null : null,
         managedTeam: values.role === "manager" ? values.managedTeam || null : null,
@@ -221,14 +224,16 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
             />
           </div>
         )}
-        <Select label="Team" {...register("team")}>
-          <option value="">None</option>
-          {visibleTeams.map((t) => (
-            <option key={t._id} value={t._id}>
-              {t.name}
-            </option>
-          ))}
-        </Select>
+        {selectedRole !== "subadmin" && (
+          <Select label="Team" {...register("team")}>
+            <option value="">None</option>
+            {visibleTeams.map((t) => (
+              <option key={t._id} value={t._id}>
+                {t.name}
+              </option>
+            ))}
+          </Select>
+        )}
         {isAdminActor && (
           <Select label="Reporting manager" {...register("reportingManager")}>
             <option value="">None</option>

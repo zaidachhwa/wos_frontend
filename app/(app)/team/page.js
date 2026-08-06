@@ -16,7 +16,7 @@ import { fetchUsers, fetchDirectory, fetchDepartments, fetchTeams, deleteUser } 
 // Mirrors MANAGEABLE_ROLES in wos_backend/src/controllers/userController.js
 // — which target roles each scoped (non-admin) role may create/edit.
 const MANAGEABLE_ROLES = {
-  subadmin: ["sublead", "member"],
+  subadmin: ["manager", "sublead", "member"],
   manager: ["member"],
   sublead: ["member"],
 };

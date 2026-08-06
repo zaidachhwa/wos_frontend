@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { LogOut, Menu, Moon, Search, Sparkles, Sun } from "lucide-react";
 
 import { NAV_ITEMS } from "@/constants/nav.constants";
@@ -14,6 +15,7 @@ import { logout } from "@/services/authService";
 export default function Header({ onMenuClick }) {
   const pathname = usePathname();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { user, clearAuth } = useAuthStore();
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -49,6 +51,9 @@ export default function Header({ onMenuClick }) {
       // clear the local session regardless of API failure
     }
     clearAuth();
+    // Same tab can log in as a different, differently-scoped user next —
+    // cached rows (users/teams/departments/etc.) must not carry over.
+    queryClient.clear();
     router.replace("/login");
   };
 

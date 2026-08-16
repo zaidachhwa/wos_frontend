@@ -252,7 +252,7 @@ export default function TaskDialog({ open, onClose: onCloseProp, projects, direc
         )}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           <Select label="Priority" {...register("priority")}>
-            {["low", "medium", "high", "critical"].map((p) => (
+            {["low", "medium", "high"].map((p) => (
               <option key={p} value={p}>
                 {p}
               </option>

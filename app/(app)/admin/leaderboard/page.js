@@ -10,7 +10,7 @@ import { Input, Button } from "@/components/ui/Field";
 import { fetchPointsConfig, updatePointsConfig } from "@/services/leaderboardService";
 import { useAuthStore } from "@/store/authStore";
 
-const PRIORITIES = ["low", "medium", "high", "critical"];
+const PRIORITIES = ["low", "medium", "high"];
 const PENALTY_FIELDS = [
   ["completedLate", "Completed late"],
   ["overdue", "Went overdue (still open)"],

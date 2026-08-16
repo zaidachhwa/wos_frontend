@@ -26,6 +26,7 @@ export default function TaskTable({ tasks, onOpen, selected, onToggleSelect, onT
               </th>
             )}
             <th className="px-4 py-3 font-medium">Task</th>
+            <th className="hidden px-4 py-3 font-medium sm:table-cell">Project</th>
             <th className="px-4 py-3 font-medium">Status</th>
             <th className="hidden px-4 py-3 font-medium sm:table-cell">Priority</th>
             <th className="hidden px-4 py-3 font-medium sm:table-cell">Assignees</th>
@@ -61,6 +62,7 @@ export default function TaskTable({ tasks, onOpen, selected, onToggleSelect, onT
                   <p className="mt-0.5 truncate text-xs text-muted">{t.labels.join(" · ")}</p>
                 )}
               </td>
+              <td className="hidden truncate px-4 py-3 text-muted sm:table-cell">{t.project?.name || "—"}</td>
               <td className="px-4 py-3">
                 <Badge value={t.status} />
               </td>

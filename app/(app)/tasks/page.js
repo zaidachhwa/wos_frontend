@@ -21,7 +21,7 @@ import { fetchDirectory } from "@/services/orgService";
 import useToast from "@/hooks/useToast";
 import { isTaskOverdue } from "@/lib/taskDates";
 
-const STATUSES = ["backlog", "todo", "in_progress", "review", "testing", "client_review", "completed", "blocked"];
+const STATUSES = ["todo", "in_progress", "review", "testing", "client_review", "completed", "blocked"];
 
 const startOfDay = (offset = 0) => {
   const d = new Date();
@@ -43,7 +43,7 @@ export default function TasksPage() {
   const me = useAuthStore((s) => s.user);
   const canCreate = ["admin", "manager", "subadmin", "sublead", "member"].includes(me?.role);
   const canBulk = ["admin", "manager", "subadmin", "sublead"].includes(me?.role);
-  const canApprove = ["admin", "manager", "subadmin"].includes(me?.role);
+  const canApprove = ["admin", "manager", "subadmin", "sublead"].includes(me?.role);
   const queryClient = useQueryClient();
   const toast = useToast();
   const router = useRouter();

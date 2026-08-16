@@ -24,6 +24,7 @@ export default function ProjectCard({ project }) {
       <div className="mt-4 flex items-center justify-between text-xs text-muted">
         <span className="flex items-center gap-1.5">
           <Badge value={project.priority} />
+          {project.weightage > 0 && <span>Wt {project.weightage}</span>}
         </span>
         <span className="flex items-center gap-1.5">
           <CalendarDays size={14} />

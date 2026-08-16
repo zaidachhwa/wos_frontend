@@ -20,7 +20,6 @@ const todayStr = () => {
 };
 
 const COLUMNS = [
-  ["backlog", "Backlog"],
   ["todo", "To Do"],
   ["in_progress", "In Progress"],
   ["review", "Review"],

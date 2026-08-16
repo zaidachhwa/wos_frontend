@@ -17,6 +17,7 @@ const schema = yup.object({
   name: yup.string().trim().required("Name is required"),
   manager: yup.string().required("Manager is required"),
   type: yup.string().required("Type is required"),
+  weightage: yup.number().min(0, "Weightage can't be negative").typeError("Weightage must be a number"),
 });
 
 // Form state lives in a component that mounts fresh on every dialog open,
@@ -43,6 +44,7 @@ function ProjectForm({ onClose, project, directory }) {
       status: project?.status || "planning",
       startDate: project?.startDate ? project.startDate.slice(0, 10) : "",
       deadline: project?.deadline ? project.deadline.slice(0, 10) : "",
+      weightage: project?.weightage ?? 0,
     },
   });
 
@@ -93,7 +95,7 @@ function ProjectForm({ onClose, project, directory }) {
       <Textarea label="Description" {...register("description")} />
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <Select label="Priority" {...register("priority")}>
-          {["low", "medium", "high", "critical"].map((p) => (
+          {["low", "medium", "high"].map((p) => (
             <option key={p} value={p}>
               {p}
             </option>
@@ -117,6 +119,14 @@ function ProjectForm({ onClose, project, directory }) {
         )}
         <Input label="Start date" type="date" {...register("startDate")} />
         <Input label="Deadline" type="date" {...register("deadline")} />
+        <Input
+          label="Weightage"
+          type="number"
+          min="0"
+          step="1"
+          error={errors.weightage?.message}
+          {...register("weightage", { valueAsNumber: true })}
+        />
       </div>
       <MultiSelect
         label="Members"

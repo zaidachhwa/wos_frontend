@@ -12,9 +12,7 @@ const VALUE_TONES = {
   low: "muted",
   medium: "info",
   high: "warning",
-  critical: "danger",
   // task status
-  backlog: "muted",
   todo: "muted",
   in_progress: "info",
   review: "warning",

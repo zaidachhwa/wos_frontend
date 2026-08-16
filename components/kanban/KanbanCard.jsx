@@ -19,6 +19,7 @@ export default function KanbanCard({ task, onOpen }) {
           </span>
         )}
       </p>
+      {task.project?.name && <p className="mt-1 truncate text-xs font-medium text-primary">{task.project.name}</p>}
       {task.labels?.length > 0 && (
         <p className="mt-1 truncate text-xs text-muted">{task.labels.join(" · ")}</p>
       )}

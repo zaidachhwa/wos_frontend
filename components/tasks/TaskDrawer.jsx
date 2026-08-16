@@ -24,8 +24,8 @@ import { taskPointCeiling, maxBonusFor } from "@/constants/points.constants";
 import { fetchPointsConfig } from "@/services/leaderboardService";
 import { fetchModules } from "@/services/projectService";
 
-const STATUSES = ["backlog", "todo", "in_progress", "review", "testing", "client_review", "completed", "blocked"];
-const PRIORITIES = ["low", "medium", "high", "critical"];
+const STATUSES = ["todo", "in_progress", "review", "testing", "client_review", "completed", "blocked"];
+const PRIORITIES = ["low", "medium", "high"];
 
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString() : "—");
 const fmtTime = (t) => t || "—";
@@ -39,7 +39,6 @@ const fmtDuration = (ms) => {
 };
 
 const STATUS_LABELS = {
-  backlog: "Backlog",
   todo: "To do",
   in_progress: "In progress",
   review: "Review",
@@ -76,10 +75,11 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
     staleTime: 5 * 60 * 1000,
   });
 
+  const projectId = task?.project?._id;
   const { data: projectModules = [] } = useQuery({
-    queryKey: ["modules", task?.project],
-    queryFn: () => fetchModules(task.project),
-    enabled: open && Boolean(task?.project),
+    queryKey: ["modules", projectId],
+    queryFn: () => fetchModules(projectId),
+    enabled: open && Boolean(projectId),
   });
 
   useEffect(() => {
@@ -98,8 +98,8 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["task", taskStub?._id] });
     queryClient.invalidateQueries({ queryKey: ["tasks"] });
-    if (task?.project) queryClient.invalidateQueries({ queryKey: ["project", String(task.project)] });
-    if (task?.project) queryClient.invalidateQueries({ queryKey: ["modules", String(task.project)] });
+    if (task?.project?._id) queryClient.invalidateQueries({ queryKey: ["project", task.project._id] });
+    if (task?.project?._id) queryClient.invalidateQueries({ queryKey: ["modules", task.project._id] });
   };
 
   const showError = (e) => {

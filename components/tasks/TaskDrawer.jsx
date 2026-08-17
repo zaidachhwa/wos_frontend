@@ -212,6 +212,21 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
             </div>
           )}
 
+          {canManage ? (
+            <label className="flex w-fit cursor-pointer items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="accent-primary"
+                checked={Boolean(task.isClientChange)}
+                disabled={patch.isPending}
+                onChange={(e) => patch.mutate({ isClientChange: e.target.checked })}
+              />
+              Client requested this change
+            </label>
+          ) : (
+            task.isClientChange && <Badge value="client change" tone="info" />
+          )}
+
           <div className="grid grid-cols-2 gap-4">
             <Select
               label="Status"

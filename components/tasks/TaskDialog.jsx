@@ -41,6 +41,7 @@ const schema = yup.object({
   project: yup.string().required("Project is required"),
   title: yup.string().trim().required("Title is required"),
   type: yup.string().oneOf(["task", "bug"]).default("task"),
+  isClientChange: yup.boolean().default(false),
   modules: yup
     .array()
     .of(yup.string())
@@ -110,6 +111,7 @@ export default function TaskDialog({ open, onClose: onCloseProp, projects, direc
         startTime: task?.startTime || nowTimeStr(),
         endTime: task?.endTime || "23:00",
         labels: task?.labels?.join(", ") || "",
+        isClientChange: task?.isClientChange || false,
         blockedBy: task?.blockedBy?.map((b) => b._id || b) || [],
         recurrence: task?.recurrence?.frequency || "none",
       });
@@ -215,6 +217,10 @@ export default function TaskDialog({ open, onClose: onCloseProp, projects, direc
         </div>
         <Input label="Title" error={errors.title?.message} {...register("title")} />
         <Textarea label="Description" {...register("description")} />
+        <label className="flex cursor-pointer items-center gap-2 text-sm">
+          <input type="checkbox" className="accent-primary" {...register("isClientChange")} />
+          Client requested this change
+        </label>
         {watch("type") === "bug" && (
           <Input label="Reference (optional)" placeholder="Link or note on what this bug came from" {...register("reference")} />
         )}

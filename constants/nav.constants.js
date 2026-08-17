@@ -11,6 +11,7 @@ import {
   Trophy,
   Sliders,
   AlertTriangle,
+  ClipboardCheck,
 } from "lucide-react";
 
 export const NAV_ITEMS = [
@@ -22,6 +23,7 @@ export const NAV_ITEMS = [
   { href: "/team", label: "Team", icon: Users },
   { href: "/reports", label: "Reports", icon: BarChart3, roles: ["admin", "manager", "subadmin"] },
   { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
+  { href: "/appraisal", label: "Appraisal", icon: ClipboardCheck },
   { href: "/admin/leaderboard", label: "Leaderboard settings", icon: Sliders, roles: ["admin"] },
   { href: "/admin/department-violations", label: "Department violations", icon: AlertTriangle, roles: ["admin"] },
   { href: "/notifications", label: "Notifications", icon: Bell },

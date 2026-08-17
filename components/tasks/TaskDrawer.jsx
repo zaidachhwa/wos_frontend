@@ -193,6 +193,10 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
         </div>
       ) : (
         <div className="space-y-6">
+          <p className="text-xs text-muted">
+            Project: <span className="font-medium text-primary">{task.project?.name || "—"}</span>
+          </p>
+
           {apiError && (
             <p role="alert" className="rounded-input border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
               {apiError}

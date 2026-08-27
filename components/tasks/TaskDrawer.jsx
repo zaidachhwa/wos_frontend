@@ -165,6 +165,16 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
   const isAssignee = task?.assignees?.some((a) => a._id === me?._id);
   const canManage = ["admin", "manager", "subadmin", "sublead"].includes(me?.role);
   const canEditStatus = canManage || isAssignee;
+  // Flagging a bug/client change is gated separately from general task
+  // management — mirrors taskController.js's canFlagDefects. A task
+  // assigned to a manager/sublead/subadmin can only be flagged by QA or
+  // admin; nobody at their level or below reviews their own work. Anyone
+  // else's task can be flagged by sublead/manager/subadmin too, on top of QA/admin.
+  const hasLeadAssignee = (task?.assignees || []).some((a) => ["manager", "sublead", "subadmin"].includes(a.role));
+  const canFlag =
+    me?.role === "admin" || me?.role === "qa"
+      ? true
+      : ["sublead", "manager", "subadmin"].includes(me?.role) && !hasLeadAssignee;
   // Comment moderation is deliberately narrower than canManage: backend's
   // COMMENT_MODERATOR_ROLES excludes subadmin (no project-scope check there).
   const canModerateComments = ["admin", "manager", "sublead"].includes(me?.role);
@@ -209,26 +219,48 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
             </p>
           )}
 
-          {task.type === "bug" && (
-            <div className="flex items-center gap-2">
-              <Badge value="bug" />
-              {task.reference && <p className="text-xs text-muted">Reference: {task.reference}</p>}
-            </div>
+          {task.type === "bug" && task.reference && (
+            <p className="text-xs text-muted">Reference: {task.reference}</p>
           )}
 
-          {canManage ? (
-            <label className="flex w-fit cursor-pointer items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                className="accent-primary"
-                checked={Boolean(task.isClientChange)}
-                disabled={patch.isPending}
-                onChange={(e) => patch.mutate({ isClientChange: e.target.checked })}
-              />
-              Client requested this change
-            </label>
+          {/* Flagging either of these after the fact — e.g. a lead or QA
+              reviewing already-completed work — is what feeds the assignee's
+              appraisal defect count (see appraisalController.js), so both
+              stay editable post-completion, not just at task creation. */}
+          {canFlag ? (
+            <div className="flex flex-wrap items-center gap-4">
+              <label className="flex w-fit cursor-pointer items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="accent-primary"
+                  checked={task.type === "bug"}
+                  disabled={patch.isPending}
+                  onChange={(e) => {
+                    if (e.target.checked && !(task.modules || []).length) {
+                      setApiError("Tag this task to a module first (edit it), then it can be marked as a bug.");
+                      return;
+                    }
+                    patch.mutate({ type: e.target.checked ? "bug" : "task" });
+                  }}
+                />
+                Bug
+              </label>
+              <label className="flex w-fit cursor-pointer items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="accent-primary"
+                  checked={Boolean(task.isClientChange)}
+                  disabled={patch.isPending}
+                  onChange={(e) => patch.mutate({ isClientChange: e.target.checked })}
+                />
+                Client requested this change
+              </label>
+            </div>
           ) : (
-            task.isClientChange && <Badge value="client change" tone="info" />
+            <div className="flex items-center gap-2">
+              {task.type === "bug" && <Badge value="bug" />}
+              {task.isClientChange && <Badge value="client change" tone="info" />}
+            </div>
           )}
 
           <div className="grid grid-cols-2 gap-4">

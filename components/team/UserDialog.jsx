@@ -19,7 +19,7 @@ const MANAGEABLE_ROLES = {
   sublead: ["member"],
 };
 
-const ROLE_LABELS = { member: "Member", sublead: "Sub Lead", manager: "Manager", subadmin: "Sub Admin", admin: "Admin" };
+const ROLE_LABELS = { member: "Member", sublead: "Sub Lead", manager: "Manager", subadmin: "Sub Admin", admin: "Admin", hr: "HR", qa: "QA" };
 
 const schema = yup.object({
   name: yup.string().trim().required("Name is required"),
@@ -29,7 +29,7 @@ const schema = yup.object({
     then: (s) => s.min(8, "At least 8 characters").required("Password is required"),
     otherwise: (s) => s.strip(),
   }),
-  role: yup.string().oneOf(["admin", "manager", "subadmin", "sublead", "member"]).required(),
+  role: yup.string().oneOf(["admin", "manager", "subadmin", "sublead", "member", "hr", "qa"]).required(),
   managedDepartment: yup.string().when("role", {
     is: "subadmin",
     then: (s) => s.required("Managed department is required for this role"),
@@ -47,7 +47,7 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
   const isAdminActor = actor?.role === "admin";
   const isSubadminActor = actor?.role === "subadmin";
   const selectableRoles = isAdminActor
-    ? ["member", "sublead", "manager", "subadmin", "admin"]
+    ? ["member", "sublead", "manager", "subadmin", "admin", "hr", "qa"]
     : MANAGEABLE_ROLES[actor?.role] || [];
   const managedDepartmentId = actor?.managedDepartment?._id || actor?.managedDepartment;
   const actorManagedTeamIds =
@@ -93,6 +93,7 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
         managedTeam: user?.managedTeam?._id || user?.managedTeam || "",
         managedTeams: user?.managedTeams?.map((t) => t._id || t) || [],
         designation: user?.designation || "",
+        joinedAt: user?.joinedAt ? user.joinedAt.slice(0, 10) : "",
         department: user?.department?._id || "",
         team: user?.team?._id || "",
         reportingManager: user?.reportingManager?._id || "",
@@ -106,6 +107,7 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
     mutationFn: (values) => {
       const payload = {
         ...values,
+        joinedAt: values.joinedAt || null,
         department: values.department || null,
         // Sub-admin's scope is the whole managedDepartment automatically —
         // a personal team is irrelevant to what they can see/manage, so
@@ -168,6 +170,14 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
           ))}
         </Select>
         <Input label="Designation" {...register("designation")} />
+        {isAdminActor && (
+          <Input
+            label="Joined on"
+            type="date"
+            {...register("joinedAt")}
+            title="Drives the appraisal tenure band — 0–6 / 6–12 / 12+ months. Defaults to account creation date if left blank."
+          />
+        )}
         {isAdminActor && (
           <Select label="Department" {...register("department")}>
             <option value="">None</option>

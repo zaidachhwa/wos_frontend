@@ -115,6 +115,7 @@ export default function TeamPage() {
               <option value="member">Member</option>
               <option value="hr">HR</option>
               <option value="qa">QA</option>
+              <option value="director">Director</option>
             </select>
             <select
               aria-label="Filter by department"

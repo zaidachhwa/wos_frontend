@@ -19,7 +19,7 @@ const MANAGEABLE_ROLES = {
   sublead: ["member"],
 };
 
-const ROLE_LABELS = { member: "Member", sublead: "Sub Lead", manager: "Manager", subadmin: "Sub Admin", admin: "Admin", hr: "HR", qa: "QA" };
+const ROLE_LABELS = { member: "Member", sublead: "Sub Lead", manager: "Manager", subadmin: "Sub Admin", admin: "Admin", hr: "HR", qa: "QA", director: "Director" };
 
 const schema = yup.object({
   name: yup.string().trim().required("Name is required"),
@@ -29,7 +29,7 @@ const schema = yup.object({
     then: (s) => s.min(8, "At least 8 characters").required("Password is required"),
     otherwise: (s) => s.strip(),
   }),
-  role: yup.string().oneOf(["admin", "manager", "subadmin", "sublead", "member", "hr", "qa"]).required(),
+  role: yup.string().oneOf(["admin", "manager", "subadmin", "sublead", "member", "hr", "qa", "director"]).required(),
   managedDepartment: yup.string().when("role", {
     is: "subadmin",
     then: (s) => s.required("Managed department is required for this role"),
@@ -49,7 +49,7 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
   const isAdminActor = actor?.role === "admin";
   const isSubadminActor = actor?.role === "subadmin";
   const selectableRoles = isAdminActor
-    ? ["member", "sublead", "manager", "subadmin", "admin", "hr", "qa"]
+    ? ["member", "sublead", "manager", "subadmin", "admin", "hr", "qa", "director"]
     : MANAGEABLE_ROLES[actor?.role] || [];
   const managedDepartmentId = actor?.managedDepartment?._id || actor?.managedDepartment;
   const actorManagedTeamIds =

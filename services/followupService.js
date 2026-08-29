@@ -12,8 +12,12 @@ export const fetchFollowUpsPage = async ({ page, limit }) => {
   return { followUps: data.data.followUps, pagination: data.data.pagination };
 };
 
-export const saveFollowUp = async (payload) => {
-  const { data } = await axiosInstance.post("/followups", payload);
+export const saveFollowUp = async ({ location, ...payload }) => {
+  const { data } = await axiosInstance.post("/followups", {
+    ...payload,
+    lat: location?.lat,
+    lng: location?.lng,
+  });
   return data.data.followUp;
 };
 

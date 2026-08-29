@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Badge from "@/components/ui/Badge";
 import { Input, Textarea, Button } from "@/components/ui/Field";
 import { saveFollowUp, fetchFollowUpSuggestion, fetchFollowUps } from "@/services/followupService";
+import { getCurrentLocation } from "@/lib/geolocation";
 import useToast from "@/hooks/useToast";
 
 // Subtracts one day from a "YYYY-MM-DD" string without going through a
@@ -20,19 +21,6 @@ const dayBefore = (dateStr) => {
   const pad = (n) => String(n).padStart(2, "0");
   return `${prev.getUTCFullYear()}-${pad(prev.getUTCMonth() + 1)}-${pad(prev.getUTCDate())}`;
 };
-
-// Resolves to {lat,lng} or null (denied/unsupported/timed out) — the
-// backend decides whether a location is actually required, so a failure
-// here just means we submit without coordinates and let its error surface.
-const getCoords = () =>
-  new Promise((resolve) => {
-    if (!navigator.geolocation) return resolve(null);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => resolve(null),
-      { timeout: 8000 }
-    );
-  });
 
 const FIELDS = {
   morning: [
@@ -50,10 +38,11 @@ const FIELDS = {
   ],
 };
 
-export default function FollowUpCard({ type, date, followUp }) {
+export default function FollowUpCard({ type, date, followUp, requireLocation = false }) {
   const queryClient = useQueryClient();
   const toast = useToast();
   const [apiError, setApiError] = useState("");
+  const [locating, setLocating] = useState(false);
   const status = followUp?.status || "draft";
   const locked = status === "reviewed";
 
@@ -94,12 +83,11 @@ export default function FollowUpCard({ type, date, followUp }) {
 
   const mutation = useMutation({
     onMutate: () => setApiError(""),
-    mutationFn: async ({ values, submit }) => {
+    mutationFn: ({ values, submit, location }) => {
       const data = { ...values };
       const hoursField = type === "morning" ? "estimatedHours" : "actualHours";
       data[hoursField] = data[hoursField] === "" ? undefined : Number(data[hoursField]);
-      const coords = submit ? await getCoords() : null;
-      return saveFollowUp({ date, type, data, submit, ...coords });
+      return saveFollowUp({ date, type, data, submit, location });
     },
     onSuccess: (_data, { submit }) => {
       queryClient.invalidateQueries({ queryKey: ["followups"] });
@@ -110,6 +98,28 @@ export default function FollowUpCard({ type, date, followUp }) {
       setApiError(message);
       toast.error(message);
     },
+  });
+
+  // Submitting (not draft-saving) is what the geofence gates — pull the
+  // browser's current position first so the request carries lat/lng, and
+  // surface a clear error if location access is denied or times out rather
+  // than letting the backend's generic 400 be the only signal.
+  const submitWithLocation = handleSubmit(async (values) => {
+    if (!requireLocation) {
+      mutation.mutate({ values, submit: true });
+      return;
+    }
+    setApiError("");
+    setLocating(true);
+    try {
+      const location = await getCurrentLocation();
+      mutation.mutate({ values, submit: true, location });
+    } catch (error) {
+      setApiError(error.message);
+      toast.error(error.message);
+    } finally {
+      setLocating(false);
+    }
   });
 
   return (
@@ -157,12 +167,8 @@ export default function FollowUpCard({ type, date, followUp }) {
             >
               Save draft
             </Button>
-            <Button
-              type="button"
-              disabled={mutation.isPending}
-              onClick={handleSubmit((values) => mutation.mutate({ values, submit: true }))}
-            >
-              {status === "submitted" ? "Resubmit" : "Submit"}
+            <Button type="button" disabled={mutation.isPending || locating} onClick={submitWithLocation}>
+              {locating ? "Getting location…" : status === "submitted" ? "Resubmit" : "Submit"}
             </Button>
           </div>
           {status === "submitted" && (

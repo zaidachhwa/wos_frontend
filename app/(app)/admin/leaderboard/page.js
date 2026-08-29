@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ShieldAlert, Trophy, AlertTriangle, CalendarClock, MapPin } from "lucide-react";
+import { ShieldAlert, Trophy, AlertTriangle } from "lucide-react";
 
 import EmptyState from "@/components/ui/EmptyState";
 import Skeleton from "@/components/ui/Skeleton";
@@ -15,17 +15,6 @@ const PENALTY_FIELDS = [
   ["completedLate", "Completed late"],
   ["overdue", "Went overdue (still open)"],
   ["bug", "Bug logged"],
-];
-const MONTHLY_PENALTY_FIELDS = [
-  ["leave", "Leave"],
-  ["lateMark", "Late mark"],
-  ["clientChange", "Client change"],
-  ["bug", "Bug"],
-];
-const OFFICE_LOCATION_FIELDS = [
-  ["lat", "Latitude"],
-  ["lng", "Longitude"],
-  ["radiusMeters", "Radius (meters)"],
 ];
 
 export default function AdminLeaderboardPage() {
@@ -75,17 +64,6 @@ export default function AdminLeaderboardPage() {
             pointsByPriority: Object.fromEntries(PRIORITIES.map((p) => [p, Number(effective.pointsByPriority[p])])),
             penalties: Object.fromEntries(
               PENALTY_FIELDS.map(([key]) => [key, Number(effective.penalties[key])])
-            ),
-            monthlyPenalties: Object.fromEntries(
-              MONTHLY_PENALTY_FIELDS.map(([key]) => [key, Number(effective.monthlyPenalties[key])])
-            ),
-            officeLocation: Object.fromEntries(
-              OFFICE_LOCATION_FIELDS.map(([key]) => [
-                key,
-                effective.officeLocation[key] === "" || effective.officeLocation[key] === null
-                  ? null
-                  : Number(effective.officeLocation[key]),
-              ])
             ),
           });
         }}
@@ -149,64 +127,6 @@ export default function AdminLeaderboardPage() {
                 value={effective.penalties[key]}
                 onChange={(e) =>
                   setDraft({ ...effective, penalties: { ...effective.penalties, [key]: e.target.value } })
-                }
-              />
-            ))}
-          </div>
-        </section>
-
-        <section className="rounded-card border border-border bg-surface p-6">
-          <div className="flex items-center gap-2">
-            <CalendarClock size={18} className="text-warning" />
-            <h3 className="text-base font-semibold tracking-tight">Monthly performance penalties</h3>
-          </div>
-          <p className="mt-1 text-sm text-muted">
-            These values determine how much each monthly event contributes to the employee&apos;s performance
-            penalty: score = 100 − (leaves×weight + late marks×weight + client changes×weight + bugs×weight) ÷
-            tasks completed.
-          </p>
-          <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-            {MONTHLY_PENALTY_FIELDS.map(([key, label]) => (
-              <Input
-                key={key}
-                label={label}
-                type="number"
-                min="0"
-                step="1"
-                value={effective.monthlyPenalties[key]}
-                onChange={(e) =>
-                  setDraft({
-                    ...effective,
-                    monthlyPenalties: { ...effective.monthlyPenalties, [key]: e.target.value },
-                  })
-                }
-              />
-            ))}
-          </div>
-        </section>
-
-        <section className="rounded-card border border-border bg-surface p-6">
-          <div className="flex items-center gap-2">
-            <MapPin size={18} className="text-primary" />
-            <h3 className="text-base font-semibold tracking-tight">Office location</h3>
-          </div>
-          <p className="mt-1 text-sm text-muted">
-            Follow-ups can only be submitted from within this radius. Leave all three blank to disable the
-            location check.
-          </p>
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {OFFICE_LOCATION_FIELDS.map(([key, label]) => (
-              <Input
-                key={key}
-                label={label}
-                type="number"
-                step="any"
-                value={effective.officeLocation[key] ?? ""}
-                onChange={(e) =>
-                  setDraft({
-                    ...effective,
-                    officeLocation: { ...effective.officeLocation, [key]: e.target.value },
-                  })
                 }
               />
             ))}

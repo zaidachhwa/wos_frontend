@@ -11,8 +11,10 @@ import Skeleton from "@/components/ui/Skeleton";
 import Pagination from "@/components/ui/Pagination";
 import { useAuthStore } from "@/store/authStore";
 import { fetchFollowUps, fetchFollowUpsPage } from "@/services/followupService";
+import { fetchAttendanceConfig } from "@/services/attendanceService";
 
 const HISTORY_PAGE_SIZE = 10;
+const TRACKED_ROLES = ["manager", "sublead", "member"];
 
 const localDay = () => {
   const d = new Date();
@@ -22,7 +24,7 @@ const localDay = () => {
 
 export default function FollowUpsPage() {
   const me = useAuthStore((s) => s.user);
-  const hasTeamView = ["admin", "manager", "subadmin", "sublead"].includes(me?.role);
+  const hasTeamView = ["admin", "manager", "subadmin", "sublead", "hr"].includes(me?.role);
   const canReview = ["admin", "manager", "subadmin", "sublead"].includes(me?.role);
   const [tab, setTab] = useState("mine");
   const [historyPage, setHistoryPage] = useState(1);
@@ -38,6 +40,17 @@ export default function FollowUpsPage() {
     enabled: tab === "mine",
     placeholderData: (prev) => prev,
   });
+  const isTracked = TRACKED_ROLES.includes(me?.role);
+  // Fetched for everyone (not just tracked roles) — anyone can submit their
+  // own follow-up, and the geofence, once HR sets it up, applies to all of them.
+  const { data: attendanceConfig } = useQuery({
+    queryKey: ["attendance-config"],
+    queryFn: fetchAttendanceConfig,
+  });
+  const requireLocation = Boolean(attendanceConfig?.officeLat && attendanceConfig?.officeLng);
+  // HR can set an individual deadline per person (different shifts) — that
+  // always wins over the org default when present.
+  const myDeadline = me?.morningDeadline || attendanceConfig?.morningDeadline;
 
   const byType = (type) => (own || []).find((f) => f.type === type);
   const pastFollowUps = (history?.followUps || []).filter((f) => f.date !== today && f.status !== "draft");
@@ -71,9 +84,16 @@ export default function FollowUpsPage() {
           </div>
         ) : (
           <>
+            {isTracked && myDeadline && (
+              <p className="text-xs text-muted">
+                Submit your morning follow-up by {myDeadline} IST — later than that auto-marks you late for the
+                day, and no submission at all auto-marks you absent.
+                {requireLocation && " Submitting requires being at the office."}
+              </p>
+            )}
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-              <FollowUpCard type="morning" date={today} followUp={byType("morning")} />
-              <FollowUpCard type="evening" date={today} followUp={byType("evening")} />
+              <FollowUpCard type="morning" date={today} followUp={byType("morning")} requireLocation={requireLocation} />
+              <FollowUpCard type="evening" date={today} followUp={byType("evening")} requireLocation={requireLocation} />
             </div>
             {["submitted", "reviewed"].includes(byType("evening")?.status) && (
               <div className="mt-6 flex justify-end">

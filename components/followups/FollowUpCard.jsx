@@ -1,20 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import Badge from "@/components/ui/Badge";
 import { Input, Textarea, Button } from "@/components/ui/Field";
 import { saveFollowUp, fetchFollowUpSuggestion, fetchFollowUps } from "@/services/followupService";
+import { fetchProjects } from "@/services/projectService";
 import { getCurrentLocation } from "@/lib/geolocation";
 import useToast from "@/hooks/useToast";
 
-// Subtracts one day from a "YYYY-MM-DD" string without going through a
-// local-timezone Date parse (`new Date("2026-08-05")` parses as UTC
-// midnight, so local .getDate()/.setDate() can land on the wrong day
-// depending on the viewer's timezone) — parse and arithmetic both stay in
-// UTC space, so the result is timezone-independent.
 const dayBefore = (dateStr) => {
   const [y, m, d] = dateStr.split("-").map(Number);
   const prev = new Date(Date.UTC(y, m - 1, d - 1));
@@ -46,16 +42,12 @@ export default function FollowUpCard({ type, date, followUp, requireLocation = f
   const status = followUp?.status || "draft";
   const locked = status === "reviewed";
 
-  // Suggested "yesterday I completed" text from actually-completed tasks; morning-only.
   const { data: suggestion } = useQuery({
     queryKey: ["followup-suggestion", date],
     queryFn: () => fetchFollowUpSuggestion(date),
     enabled: type === "morning" && !locked,
   });
 
-  // Yesterday's evening entry, if they filled one in — preferred over the
-  // task-derived suggestion above since it's what they actually reported,
-  // and it's also where "today's plan" gets prefilled from (remainingWork).
   const yesterday = dayBefore(date);
   const { data: yesterdayEvening } = useQuery({
     queryKey: ["followups", "own", yesterday, "evening"],
@@ -63,10 +55,14 @@ export default function FollowUpCard({ type, date, followUp, requireLocation = f
     enabled: type === "morning" && !locked,
   });
 
-  const { register, handleSubmit } = useForm({
-    // keepDirtyValues (below) re-syncs untouched fields whenever this object changes,
-    // which is also what lets the prefills below fill in once they resolve after
-    // mount without clobbering anything the user already typed or saved.
+  // Fetch all projects for the Evening Follow-up Project Selection
+  const { data: activeProjects } = useQuery({
+    queryKey: ["projects", "active"],
+    queryFn: fetchProjects,
+    enabled: type === "evening" && !locked,
+  });
+
+  const { register, handleSubmit, watch, setValue, getValues } = useForm({
     values: FIELDS[type].reduce((acc, [name]) => {
       const existing = followUp?.[type]?.[name] ?? "";
       let value = existing;
@@ -77,9 +73,59 @@ export default function FollowUpCard({ type, date, followUp, requireLocation = f
       }
       return { ...acc, [name]: value };
     }, {}),
-    // Refetches must not clobber keystrokes typed while a save is in flight.
     resetOptions: { keepDirtyValues: true },
   });
+
+  // State to manage selected projects manually
+  const [selectedProjectIds, setSelectedProjectIds] = useState([]);
+  const [projectTimes, setProjectTimes] = useState({});
+
+  useEffect(() => {
+    if (type === "evening" && followUp?.evening?.projects) {
+      const ids = [];
+      const times = {};
+      followUp.evening.projects.forEach((p) => {
+        const id = p.project?._id || p.project;
+        if (id) {
+          ids.push(id);
+          times[id] = { hours: p.hours || 0, minutes: p.minutes || 0 };
+        }
+      });
+      setSelectedProjectIds(ids);
+      setProjectTimes(times);
+    }
+  }, [type, followUp]);
+
+  const handleProjectToggle = (projectId) => {
+    setSelectedProjectIds((prev) => {
+      if (prev.includes(projectId)) {
+        const newIds = prev.filter((id) => id !== projectId);
+        const newTimes = { ...projectTimes };
+        delete newTimes[projectId];
+        setProjectTimes(newTimes);
+        return newIds;
+      }
+      return [...prev, projectId];
+    });
+  };
+
+  const handleTimeChange = (projectId, field, value) => {
+    setProjectTimes((prev) => ({
+      ...prev,
+      [projectId]: {
+        ...prev[projectId],
+        [field]: Number(value) || 0,
+      },
+    }));
+  };
+
+  const getTotalMinutes = () => {
+    return Object.values(projectTimes).reduce((acc, curr) => acc + ((curr.hours || 0) * 60) + (curr.minutes || 0), 0);
+  };
+
+  const totalMinutesWorked = getTotalMinutes();
+  const totalHoursDisplay = Math.floor(totalMinutesWorked / 60);
+  const totalMinsDisplay = totalMinutesWorked % 60;
 
   const mutation = useMutation({
     onMutate: () => setApiError(""),
@@ -87,6 +133,20 @@ export default function FollowUpCard({ type, date, followUp, requireLocation = f
       const data = { ...values };
       const hoursField = type === "morning" ? "estimatedHours" : "actualHours";
       data[hoursField] = data[hoursField] === "" ? undefined : Number(data[hoursField]);
+
+      if (type === "evening") {
+        data.projects = selectedProjectIds.map((id) => {
+          const hours = projectTimes[id]?.hours || 0;
+          const minutes = projectTimes[id]?.minutes || 0;
+          return {
+            project: id,
+            hours,
+            minutes,
+            totalMinutes: (hours * 60) + minutes,
+          };
+        });
+      }
+
       return saveFollowUp({ date, type, data, submit, location });
     },
     onSuccess: (_data, { submit }) => {
@@ -100,11 +160,13 @@ export default function FollowUpCard({ type, date, followUp, requireLocation = f
     },
   });
 
-  // Submitting (not draft-saving) is what the geofence gates — pull the
-  // browser's current position first so the request carries lat/lng, and
-  // surface a clear error if location access is denied or times out rather
-  // than letting the backend's generic 400 be the only signal.
   const submitWithLocation = handleSubmit(async (values) => {
+    if (type === "evening" && totalMinutesWorked < 480) {
+      setApiError("Your total recorded working time is less than 8 hours. Please complete at least 8 hours before submitting your Evening Follow-up.");
+      toast.error("Minimum 8 hours required to submit.");
+      return;
+    }
+
     if (!requireLocation) {
       mutation.mutate({ values, submit: true });
       return;
@@ -122,6 +184,8 @@ export default function FollowUpCard({ type, date, followUp, requireLocation = f
     }
   });
 
+  const saveDraft = handleSubmit((values) => mutation.mutate({ values, submit: false }));
+
   return (
     <section className="rounded-card border border-border bg-surface p-6">
       <div className="flex items-center justify-between">
@@ -130,13 +194,41 @@ export default function FollowUpCard({ type, date, followUp, requireLocation = f
       </div>
 
       {locked ? (
-        <div className="mt-4 space-y-3 text-sm">
-          {FIELDS[type].map(([name, label]) => (
-            <div key={name}>
-              <p className="text-xs text-muted">{label}</p>
-              <p className="mt-0.5 whitespace-pre-wrap">{String(followUp?.[type]?.[name] ?? "—")}</p>
+        <div className="mt-4 space-y-4 text-sm">
+          {type === "evening" && followUp?.evening?.projects && followUp.evening.projects.length > 0 && (
+            <div className="rounded-md border border-border p-3">
+              <p className="mb-2 text-xs font-semibold text-muted">Projects Worked On</p>
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-border text-muted">
+                    <th className="pb-2 font-medium">Project</th>
+                    <th className="pb-2 font-medium">Time Spent</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {followUp.evening.projects.map((p, idx) => (
+                    <tr key={idx} className="border-b border-border/50 last:border-0">
+                      <td className="py-2">{p.project?.name || "Unknown Project"}</td>
+                      <td className="py-2">{p.hours}h {p.minutes}m</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="mt-2 text-right text-xs font-semibold">
+                Total Worked: {Math.floor(followUp.evening.projects.reduce((acc, p) => acc + p.totalMinutes, 0) / 60)}h {followUp.evening.projects.reduce((acc, p) => acc + p.totalMinutes, 0) % 60}m
+              </div>
             </div>
-          ))}
+          )}
+
+          <div className="space-y-3">
+            {FIELDS[type].map(([name, label]) => (
+              <div key={name}>
+                <p className="text-xs text-muted">{label}</p>
+                <p className="mt-0.5 whitespace-pre-wrap">{String(followUp?.[type]?.[name] ?? "—")}</p>
+              </div>
+            ))}
+          </div>
+
           {followUp?.managerComment && (
             <div className="rounded-input border border-success/30 bg-success/5 px-3 py-2">
               <p className="text-xs font-medium text-success">Manager comment</p>
@@ -145,25 +237,84 @@ export default function FollowUpCard({ type, date, followUp, requireLocation = f
           )}
         </div>
       ) : (
-        <form className="mt-4 space-y-3" noValidate>
+        <form className="mt-4 space-y-4" noValidate>
           {apiError && (
             <p role="alert" className="rounded-input border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
               {apiError}
             </p>
           )}
-          {FIELDS[type].map(([name, label, kind]) =>
-            kind === "number" ? (
-              <Input key={name} label={label} type="number" min="0" step="0.5" {...register(name)} />
-            ) : (
-              <Textarea key={name} label={label} rows={2} {...register(name)} />
-            )
+          
+          {type === "evening" && (
+            <div className="rounded-md border border-border p-4 bg-muted/20">
+              <h4 className="mb-3 text-sm font-semibold">Select Projects Worked On</h4>
+              
+              <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
+                {activeProjects?.map((proj) => (
+                  <div key={proj._id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 rounded hover:bg-muted/30 transition">
+                    <label className="flex items-center gap-2 cursor-pointer text-sm">
+                      <input
+                        type="checkbox"
+                        checked={selectedProjectIds.includes(proj._id)}
+                        onChange={() => handleProjectToggle(proj._id)}
+                        className="rounded border-border accent-primary w-4 h-4"
+                      />
+                      <span className="font-medium">{proj.name}</span>
+                    </label>
+                    
+                    {selectedProjectIds.includes(proj._id) && (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min="0"
+                          placeholder="Hours"
+                          value={projectTimes[proj._id]?.hours || ""}
+                          onChange={(e) => handleTimeChange(proj._id, "hours", e.target.value)}
+                          className="w-20 rounded-input border border-border bg-surface px-2 py-1 text-sm focus:border-primary focus:outline-none"
+                        />
+                        <span className="text-xs text-muted">h</span>
+                        <input
+                          type="number"
+                          min="0"
+                          max="59"
+                          placeholder="Mins"
+                          value={projectTimes[proj._id]?.minutes || ""}
+                          onChange={(e) => handleTimeChange(proj._id, "minutes", e.target.value)}
+                          className="w-20 rounded-input border border-border bg-surface px-2 py-1 text-sm focus:border-primary focus:outline-none"
+                        />
+                        <span className="text-xs text-muted">m</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {selectedProjectIds.length > 0 && (
+                <div className="mt-4 pt-3 border-t border-border flex justify-between items-center">
+                  <span className="text-sm font-semibold">Total Time Today:</span>
+                  <span className={`text-sm font-bold ${totalMinutesWorked < 480 ? "text-danger" : "text-success"}`}>
+                    {totalHoursDisplay} Hours {totalMinsDisplay} Minutes
+                  </span>
+                </div>
+              )}
+            </div>
           )}
-          <div className="flex justify-end gap-2 pt-1">
+
+          <div className="space-y-3">
+            {FIELDS[type].map(([name, label, kind]) =>
+              kind === "number" ? (
+                <Input key={name} label={label} type="number" min="0" step="0.5" {...register(name)} />
+              ) : (
+                <Textarea key={name} label={label} rows={2} {...register(name)} />
+              )
+            )}
+          </div>
+          
+          <div className="flex justify-end gap-2 pt-2">
             <Button
               variant="secondary"
               type="button"
               disabled={mutation.isPending}
-              onClick={handleSubmit((values) => mutation.mutate({ values, submit: false }))}
+              onClick={saveDraft}
             >
               Save draft
             </Button>
@@ -172,7 +323,7 @@ export default function FollowUpCard({ type, date, followUp, requireLocation = f
             </Button>
           </div>
           {status === "submitted" && (
-            <p className="text-xs text-muted">
+            <p className="mt-2 text-right text-xs text-muted">
               Submitted {followUp?.submittedAt ? new Date(followUp.submittedAt).toLocaleTimeString() : ""} — you can
               still edit until it&apos;s reviewed.
             </p>

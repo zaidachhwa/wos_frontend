@@ -10,10 +10,61 @@ import {
   deleteDepartment,
   createTeam,
   deleteTeam,
+  updateTeamThresholds,
 } from "@/services/orgService";
+
+// Inline Red/Yellow/Green threshold editor for one team row. Own local
+// draft state since each row saves independently of the others.
+function ThresholdEditor({ team, onSaved }) {
+  const [draft, setDraft] = useState({
+    red: team.performanceThresholds?.red ?? 50,
+    yellow: team.performanceThresholds?.yellow ?? 80,
+  });
+  const [error, setError] = useState("");
+  const mutation = useMutation({
+    mutationFn: () => updateTeamThresholds({ id: team._id, red: Number(draft.red), yellow: Number(draft.yellow) }),
+    onSuccess: () => {
+      setError("");
+      onSaved();
+    },
+    onError: (e) => setError(e.response?.data?.message || "Something went wrong"),
+  });
+
+  return (
+    <div className="mt-2 flex flex-wrap items-end gap-2 border-t border-border/60 pt-2">
+      <div className="w-24">
+        <Input
+          label="Red below"
+          type="number"
+          value={draft.red}
+          onChange={(e) => setDraft({ ...draft, red: e.target.value })}
+        />
+      </div>
+      <div className="w-24">
+        <Input
+          label="Green at/above"
+          type="number"
+          value={draft.yellow}
+          onChange={(e) => setDraft({ ...draft, yellow: e.target.value })}
+        />
+      </div>
+      <Button
+        variant="secondary"
+        className="mb-0.5"
+        disabled={mutation.isPending}
+        onClick={() => mutation.mutate()}
+      >
+        Save
+      </Button>
+      {error && <p className="w-full text-xs text-danger">{error}</p>}
+    </div>
+  );
+}
 
 export default function OrgStructure({ departments, teams, me }) {
   const canManageDepartments = me?.role === "admin";
+  const managedTeamId = String(me?.managedTeam?._id || me?.managedTeam || "");
+  const canEditThresholds = (t) => canManageDepartments || (me?.role === "manager" && String(t._id) === managedTeamId);
   const queryClient = useQueryClient();
   const [deptName, setDeptName] = useState("");
   const [teamName, setTeamName] = useState("");
@@ -128,18 +179,21 @@ export default function OrgStructure({ departments, teams, me }) {
         </div>
         <ul className="mt-4 divide-y divide-border/60">
           {teams.map((t) => (
-            <li key={t._id} className="flex items-center justify-between py-2.5 text-sm">
-              <span>
-                <span className="font-medium">{t.name}</span>
-                <span className="ml-2 text-xs text-muted">{deptNameOf(t)}</span>
-              </span>
-              <button
-                onClick={() => removeTeam.mutate(t._id)}
-                aria-label={`Delete ${t.name}`}
-                className="rounded-btn p-1.5 text-muted transition-colors duration-150 hover:bg-danger/10 hover:text-danger"
-              >
-                <Trash2 size={15} />
-              </button>
+            <li key={t._id} className="py-2.5 text-sm">
+              <div className="flex items-center justify-between">
+                <span>
+                  <span className="font-medium">{t.name}</span>
+                  <span className="ml-2 text-xs text-muted">{deptNameOf(t)}</span>
+                </span>
+                <button
+                  onClick={() => removeTeam.mutate(t._id)}
+                  aria-label={`Delete ${t.name}`}
+                  className="rounded-btn p-1.5 text-muted transition-colors duration-150 hover:bg-danger/10 hover:text-danger"
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
+              {canEditThresholds(t) && <ThresholdEditor team={t} onSaved={invalidate} />}
             </li>
           ))}
           {!teams.length && <li className="py-2.5 text-sm text-muted">No teams yet.</li>}

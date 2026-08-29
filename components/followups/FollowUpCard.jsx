@@ -21,6 +21,19 @@ const dayBefore = (dateStr) => {
   return `${prev.getUTCFullYear()}-${pad(prev.getUTCMonth() + 1)}-${pad(prev.getUTCDate())}`;
 };
 
+// Resolves to {lat,lng} or null (denied/unsupported/timed out) — the
+// backend decides whether a location is actually required, so a failure
+// here just means we submit without coordinates and let its error surface.
+const getCoords = () =>
+  new Promise((resolve) => {
+    if (!navigator.geolocation) return resolve(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => resolve(null),
+      { timeout: 8000 }
+    );
+  });
+
 const FIELDS = {
   morning: [
     ["yesterdayCompleted", "Yesterday I completed", "textarea"],
@@ -81,11 +94,12 @@ export default function FollowUpCard({ type, date, followUp }) {
 
   const mutation = useMutation({
     onMutate: () => setApiError(""),
-    mutationFn: ({ values, submit }) => {
+    mutationFn: async ({ values, submit }) => {
       const data = { ...values };
       const hoursField = type === "morning" ? "estimatedHours" : "actualHours";
       data[hoursField] = data[hoursField] === "" ? undefined : Number(data[hoursField]);
-      return saveFollowUp({ date, type, data, submit });
+      const coords = submit ? await getCoords() : null;
+      return saveFollowUp({ date, type, data, submit, ...coords });
     },
     onSuccess: (_data, { submit }) => {
       queryClient.invalidateQueries({ queryKey: ["followups"] });

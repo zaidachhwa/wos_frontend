@@ -4,12 +4,12 @@ import { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import Dialog from "@/components/ui/Dialog";
 import { Input, Select, Button } from "@/components/ui/Field";
 import MultiSelect from "@/components/ui/MultiSelect";
-import { createUser, updateUser } from "@/services/orgService";
+import { createUser, updateUser, fetchUserMemos, resetUserMemos } from "@/services/orgService";
 
 // Mirrors MANAGEABLE_ROLES in wos_backend/src/controllers/userController.js
 // — which target roles each scoped (non-admin) actor may create/edit.
@@ -40,6 +40,8 @@ const schema = yup.object({
     then: (s) => s.required("Managed team is required for this role"),
     otherwise: (s) => s.strip(),
   }),
+  shiftStart: yup.string().nullable(),
+  shiftEnd: yup.string().nullable(),
 });
 
 export default function UserDialog({ open, onClose: onCloseProp, user, directory, departments, teams, actor }) {
@@ -97,6 +99,8 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
         team: user?.team?._id || "",
         reportingManager: user?.reportingManager?._id || "",
         isActive: user ? String(user.isActive) : "true",
+        shiftStart: user?.shiftStart || "",
+        shiftEnd: user?.shiftEnd || "",
       });
     }
   }, [open, user, reset]);
@@ -116,6 +120,8 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
         managedTeam: values.role === "manager" ? values.managedTeam || null : null,
         managedTeams: values.role === "sublead" ? values.managedTeams || [] : [],
         isActive: values.isActive === "true",
+        shiftStart: values.shiftStart || null,
+        shiftEnd: values.shiftEnd || null,
       };
       if (isEdit) {
         const { email, password, ...rest } = payload;
@@ -132,6 +138,20 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
   });
 
   const managers = directory.filter((d) => ["admin", "manager", "sublead"].includes(d.role));
+
+  const { data: memos = [] } = useQuery({
+    queryKey: ["user-memos", user?._id],
+    queryFn: () => fetchUserMemos(user._id),
+    enabled: isEdit && open,
+  });
+  const activeMemos = memos.filter((m) => !m.voided);
+  const resetMutation = useMutation({
+    mutationFn: () => resetUserMemos(user._id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["user-memos", user._id] });
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+    },
+  });
 
   return (
     <Dialog
@@ -168,6 +188,8 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
           ))}
         </Select>
         <Input label="Designation" {...register("designation")} />
+        <Input label="Shift start" type="time" error={errors.shiftStart?.message} {...register("shiftStart")} />
+        <Input label="Shift end" type="time" error={errors.shiftEnd?.message} {...register("shiftEnd")} />
         {isAdminActor && (
           <Select label="Department" {...register("department")}>
             <option value="">None</option>
@@ -253,6 +275,42 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
           </Select>
         )}
       </form>
+
+      {isEdit && (
+        <div className="mt-4 border-t border-border pt-4">
+          <h4 className="text-sm font-semibold">Performance memos</h4>
+          {user.terminationPending && (
+            <p className="mt-2 rounded-input border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
+              Flagged for termination review — 4th performance memo received.
+            </p>
+          )}
+          <p className="mt-2 text-sm text-muted">
+            {activeMemos.length} active memo{activeMemos.length === 1 ? "" : "s"}
+            {user.nextReviewDate &&
+              ` — next review date pushed to ${new Date(user.nextReviewDate).toLocaleDateString()}`}
+          </p>
+          {memos.length > 0 && (
+            <ul className="mt-2 space-y-1 text-xs text-muted">
+              {memos.slice(0, 5).map((m) => (
+                <li key={m._id}>
+                  {m.month} — score {m.score}, memo #{m.sequenceNumber} (
+                  {m.consequence === "termination_flag" ? "termination flag" : "review delay"}){m.voided ? " — voided" : ""}
+                </li>
+              ))}
+            </ul>
+          )}
+          {isAdminActor && activeMemos.length > 0 && (
+            <Button
+              variant="secondary"
+              className="mt-3"
+              disabled={resetMutation.isPending}
+              onClick={() => resetMutation.mutate()}
+            >
+              Reset memos
+            </Button>
+          )}
+        </div>
+      )}
     </Dialog>
   );
 }

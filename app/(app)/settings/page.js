@@ -13,6 +13,8 @@ import { updateProfile, changePassword } from "@/services/profileService";
 
 const profileSchema = yup.object({
   name: yup.string().trim().required("Name is required"),
+  shiftStart: yup.string().nullable(),
+  shiftEnd: yup.string().nullable(),
 });
 
 const passwordSchema = yup.object({
@@ -46,7 +48,12 @@ export default function SettingsPage() {
 
   const profileForm = useForm({
     resolver: yupResolver(profileSchema),
-    values: { name: user?.name || "", designation: user?.designation || "" },
+    values: {
+      name: user?.name || "",
+      designation: user?.designation || "",
+      shiftStart: user?.shiftStart || "",
+      shiftEnd: user?.shiftEnd || "",
+    },
   });
 
   const passwordForm = useForm({ resolver: yupResolver(passwordSchema) });
@@ -78,7 +85,9 @@ export default function SettingsPage() {
         <form
           className="mt-4 space-y-4"
           noValidate
-          onSubmit={profileForm.handleSubmit((v) => profileMutation.mutate(v))}
+          onSubmit={profileForm.handleSubmit((v) =>
+            profileMutation.mutate({ ...v, shiftStart: v.shiftStart || null, shiftEnd: v.shiftEnd || null })
+          )}
         >
           <Feedback state={profileState} />
           <Input
@@ -87,6 +96,10 @@ export default function SettingsPage() {
             {...profileForm.register("name")}
           />
           <Input label="Designation" {...profileForm.register("designation")} />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Input label="Shift start" type="time" {...profileForm.register("shiftStart")} />
+            <Input label="Shift end" type="time" {...profileForm.register("shiftEnd")} />
+          </div>
           <div className="grid grid-cols-1 gap-4 text-sm text-muted sm:grid-cols-2">
             <p>
               Email — <span className="text-primary">{user?.email}</span>

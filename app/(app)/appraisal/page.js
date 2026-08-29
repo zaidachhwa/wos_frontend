@@ -14,12 +14,15 @@ import { useAuthStore } from "@/store/authStore";
 const monthStr = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 const fmtMonth = (d) => new Date(d).toLocaleDateString(undefined, { month: "long", year: "numeric" });
 
-const scoreTone = (score) => {
-  if (score === null) return "text-muted";
-  if (score >= 80) return "text-success";
-  if (score >= 50) return "text-warning";
-  return "text-danger";
+// Driven by the server-computed `band` field (utils/performanceBand.js) —
+// the same decision the monthly memo sweep makes, never a second cutoff.
+const BAND_STYLE = {
+  green: { text: "text-success", label: "Green" },
+  yellow: { text: "text-warning", label: "Yellow" },
+  red: { text: "text-danger", label: "Red" },
 };
+const bandTone = (band) => BAND_STYLE[band]?.text || "text-muted";
+const bandLabel = (band) => BAND_STYLE[band]?.label || "—";
 
 export default function AppraisalPage() {
   const me = useAuthStore((s) => s.user);
@@ -77,10 +80,24 @@ export default function AppraisalPage() {
         )}
       </div>
 
-      <p className="text-xs text-muted">
-        Score = 100 − (bugs + client-requested changes) ÷ completed tasks. Shown once someone has completed at
-        least 5 tasks in the month.
-      </p>
+      <details className="rounded-card border border-border bg-surface p-4 text-xs text-muted">
+        <summary className="cursor-pointer font-medium text-primary">How the monthly score is calculated</summary>
+        <p className="mt-2">
+          Monthly score = 100 − Total Penalty Points ÷ Tasks Completed
+          <br />
+          Total Penalty Points = (Leaves × Leave weight) + (Late Marks × Late Mark weight) + (Client Changes ×
+          Client Change weight) + (Bugs × Bug weight)
+        </p>
+        <p className="mt-2">
+          Shows <strong>N/A</strong> when someone has completed zero tasks in the month, rather than dividing by
+          zero. Weights are admin-configurable under Admin → Leaderboard.
+        </p>
+        <p className="mt-2">
+          Each team sets its own Red/Yellow/Green score cutoffs (under Departments &amp; Teams). A Red month
+          automatically issues a performance memo — the first 3 push back the employee&apos;s next review date by 3
+          weeks each, the 4th flags the account for admin review.
+        </p>
+      </details>
 
       {rows.length === 0 ? (
         <EmptyState icon={ClipboardCheck} heading="No one to appraise yet" description="Scores appear here once tasks are completed this month." />
@@ -89,28 +106,38 @@ export default function AppraisalPage() {
           <table className="w-full text-sm">
             <thead className="sticky top-0 bg-surface">
               <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
+                <th className="px-4 py-3 font-medium">Rank</th>
                 <th className="px-4 py-3 font-medium">Person</th>
                 <th className="px-4 py-3 font-medium">Team</th>
                 <th className="px-4 py-3 text-right font-medium">Tasks done</th>
-                <th className="px-4 py-3 text-right font-medium">Bugs</th>
+                <th className="px-4 py-3 text-right font-medium">Leaves</th>
+                <th className="px-4 py-3 text-right font-medium">Late marks</th>
                 <th className="px-4 py-3 text-right font-medium">Client changes</th>
+                <th className="px-4 py-3 text-right font-medium">Bugs</th>
+                <th className="px-4 py-3 text-right font-medium">Penalty points</th>
                 <th className="px-4 py-3 text-right font-medium">Score</th>
+                <th className="px-4 py-3 text-right font-medium">Band</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((row) => (
                 <tr key={row.user._id} className="border-b border-border/60 last:border-0">
+                  <td className="px-4 py-3 tabular-nums text-muted">{row.rank}</td>
                   <td className="px-4 py-3">
                     <p className="font-medium">{row.user.name}</p>
                     <p className="text-xs text-muted">{row.user.designation || row.user.role}</p>
                   </td>
                   <td className="px-4 py-3 text-muted">{row.user.team?.name || "—"}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">{row.totalTasks}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">{row.bugs}</td>
+                  <td className="px-4 py-3 text-right tabular-nums">{row.tasksCompleted}</td>
+                  <td className="px-4 py-3 text-right tabular-nums">{row.leaves}</td>
+                  <td className="px-4 py-3 text-right tabular-nums">{row.lateMarks}</td>
                   <td className="px-4 py-3 text-right tabular-nums">{row.clientChanges}</td>
-                  <td className={`px-4 py-3 text-right font-semibold tabular-nums ${scoreTone(row.score)}`}>
-                    {row.score === null ? "—" : `${row.score}%`}
+                  <td className="px-4 py-3 text-right tabular-nums">{row.bugs}</td>
+                  <td className="px-4 py-3 text-right tabular-nums">{row.penaltyPoints}</td>
+                  <td className={`px-4 py-3 text-right font-semibold tabular-nums ${bandTone(row.band)}`}>
+                    {row.score === null ? "N/A" : row.score.toFixed(2)}
                   </td>
+                  <td className={`px-4 py-3 text-right font-medium ${bandTone(row.band)}`}>{bandLabel(row.band)}</td>
                 </tr>
               ))}
             </tbody>

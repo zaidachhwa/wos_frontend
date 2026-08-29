@@ -13,6 +13,7 @@ import {
   AlertTriangle,
   ClipboardCheck,
   UserCog,
+  PieChart,
 } from "lucide-react";
 
 export const NAV_ITEMS = [
@@ -22,6 +23,7 @@ export const NAV_ITEMS = [
   { href: "/tasks", label: "Tasks", icon: CheckSquare },
   { href: "/follow-ups", label: "Follow-ups", icon: MessageSquare },
   { href: "/team", label: "Team", icon: Users },
+  { href: "/analytics", label: "Analytics", icon: PieChart, roles: ["admin", "manager", "hr", "director"] },
   { href: "/reports", label: "Reports", icon: BarChart3, roles: ["admin", "manager", "subadmin"] },
   { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
   { href: "/appraisal", label: "Appraisal", icon: ClipboardCheck },

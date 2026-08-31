@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/authStore";
 import { fetchDashboardSummary, fetchProjectAnalytics, fetchUserAnalytics } from "@/services/analyticsService";
 import { fetchProjects } from "@/services/projectService";
-import { fetchUsers } from "@/services/userService";
+import { fetchUsers } from "@/services/orgService";
 import { exportToCSV, exportToExcel, exportToPDF } from "@/lib/exportUtils";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from "recharts";
 

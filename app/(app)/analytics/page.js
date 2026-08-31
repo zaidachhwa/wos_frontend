@@ -86,8 +86,8 @@ export default function AnalyticsPage() {
     queryFn: () => fetchUserAnalytics(queryParams),
   });
 
-  const { data: allProjects } = useQuery({ queryKey: ["projects"], queryFn: fetchProjects });
-  const { data: allUsers } = useQuery({ queryKey: ["users"], queryFn: () => fetchUsers({ limit: 100 }).then(res => res.users) });
+  const { data: allProjects = [] } = useQuery({ queryKey: ["projects"], queryFn: fetchProjects });
+  const { data: allUsers = [] } = useQuery({ queryKey: ["users"], queryFn: fetchUsers });
 
   const resetFilters = () => {
     setDateRange("thisMonth");

@@ -34,7 +34,7 @@ import useToast from "@/hooks/useToast";
 // The department-wise roster is admin/hr only — not even subadmin — to
 // mirror the backend's authorize("admin", "hr") on GET /appraisal. Everyone
 // else only ever gets their own numbers via GET /appraisal/me, never the roster.
-const ROSTER_ROLES = ["admin", "hr"];
+const ROSTER_ROLES = ["admin", "hr", "director"];
 
 const monthStr = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 const fmtMonth = (d) => new Date(d).toLocaleDateString(undefined, { month: "long", year: "numeric" });

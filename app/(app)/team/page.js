@@ -19,13 +19,18 @@ const MANAGEABLE_ROLES = {
   subadmin: ["manager", "sublead", "member"],
   manager: ["member"],
   sublead: ["member"],
+  hr: ["manager", "sublead", "member", "qa", "hr"],
 };
 
 export default function TeamPage() {
   const me = useAuthStore((s) => s.user);
   const isAdmin = me?.role === "admin";
-  const canManageTeam = isAdmin || Boolean(MANAGEABLE_ROLES[me?.role]);
-  const canEditUser = (u) => isAdmin || (MANAGEABLE_ROLES[me?.role] || []).includes(u.role);
+  const isHr = me?.role === "hr";
+  const canManageTeam = isAdmin || isHr || Boolean(MANAGEABLE_ROLES[me?.role]);
+  const canEditUser = (u) =>
+    isAdmin ||
+    (isHr && u.role !== "admin" && u.role !== "director") ||
+    (MANAGEABLE_ROLES[me?.role] || []).includes(u.role);
   const queryClient = useQueryClient();
   const [tab, setTab] = useState("people");
   const [search, setSearch] = useState("");

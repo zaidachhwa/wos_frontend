@@ -2,12 +2,13 @@
 
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { CalendarOff, Clock3, Download, MapPin, ShieldAlert, Sparkles, Trash2, UserPlus } from "lucide-react";
+import { CalendarOff, Clock3, Download, MapPin, Pencil, Search, ShieldAlert, Sparkles, Trash2, UserPlus } from "lucide-react";
 
 import EmptyState from "@/components/ui/EmptyState";
 import Skeleton from "@/components/ui/Skeleton";
 import Badge from "@/components/ui/Badge";
 import { Input, Select, Textarea, Button } from "@/components/ui/Field";
+import UserDialog from "@/components/team/UserDialog";
 import {
   fetchAttendance,
   markAttendance,
@@ -19,15 +20,15 @@ import {
   fetchUserDeadlines,
   setUserMorningDeadline,
 } from "@/services/attendanceService";
-import { fetchUsers } from "@/services/orgService";
+import { fetchUsers, fetchDepartments, fetchTeams, updateUser } from "@/services/orgService";
 import { getCurrentLocation } from "@/lib/geolocation";
 import { useAuthStore } from "@/store/authStore";
 import useToast from "@/hooks/useToast";
 
 // Roles that actually do task work — the ones an HR appraisal note (late /
-// leave) is meant to apply to. Admin and hr themselves are left out of the
-// picker on purpose.
+// leave) is meant to apply to.
 const TRACKED_ROLES = ["manager", "sublead", "member", "qa"];
+const ROLE_TONES = { admin: "danger", manager: "info", subadmin: "success", sublead: "warning", member: "muted", hr: "info", qa: "warning", director: "success" };
 
 const todayStr = () => {
   const d = new Date();
@@ -44,98 +45,217 @@ const labelFor = (r) => (r.type === "leave" && r.source === "auto" ? "Absent" : 
 const iconFor = (r) => (r.type === "late" ? Clock3 : CalendarOff);
 const toneFor = (r) => (r.type === "late" ? "text-warning" : "text-danger");
 
-// One row = one employee's individual deadline override. Local draft state
-// per row (not lifted to the parent) since each row saves independently.
-function DeadlineRow({ user, orgDeadline, onSaved }) {
+// One row = one employee's shift times and morning deadline override.
+function MemberShiftRow({ user, orgDeadline, onSaved, onEditDetails }) {
   const toast = useToast();
-  const [draft, setDraft] = useState(user.morningDeadline || "");
+  const [shiftStart, setShiftStart] = useState(user.shiftStart || "");
+  const [shiftEnd, setShiftEnd] = useState(user.shiftEnd || "");
+  const [morningDeadline, setMorningDeadline] = useState(user.morningDeadline || "");
+
+  const dirty =
+    shiftStart !== (user.shiftStart || "") ||
+    shiftEnd !== (user.shiftEnd || "") ||
+    morningDeadline !== (user.morningDeadline || "");
 
   const save = useMutation({
-    mutationFn: (morningDeadline) => setUserMorningDeadline({ userId: user._id, morningDeadline }),
+    mutationFn: () =>
+      updateUser({
+        id: user._id,
+        shiftStart: shiftStart || null,
+        shiftEnd: shiftEnd || null,
+        morningDeadline: morningDeadline || null,
+      }),
     onSuccess: () => {
       onSaved();
-      toast.success(`${user.name}'s deadline updated`);
+      toast.success(`Updated shift & timings for ${user.name}`);
     },
     onError: (error) => toast.error(error.response?.data?.message || "Something went wrong"),
   });
 
-  const dirty = draft !== (user.morningDeadline || "");
-
   return (
-    <tr className="border-b border-border/60 last:border-0">
+    <tr className="border-b border-border/60 transition-colors duration-150 last:border-0 hover:bg-background/40">
       <td className="px-4 py-3">
         <p className="font-medium">{user.name}</p>
-        <p className="text-xs text-muted">{user.designation || user.role}</p>
-      </td>
-      <td className="px-4 py-3 text-muted">{user.team?.name || "—"}</td>
-      <td className="px-4 py-3">
-        <Input aria-label={`${user.name}'s deadline`} type="time" value={draft} onChange={(e) => setDraft(e.target.value)} />
+        <p className="text-xs text-muted">{user.designation || user.email || "—"}</p>
       </td>
       <td className="px-4 py-3">
-        {user.morningDeadline ? (
-          <Badge value="Custom" tone="info" />
-        ) : (
-          <Badge value={`Default (${orgDeadline})`} tone="muted" />
-        )}
+        <Badge value={user.role} tone={ROLE_TONES[user.role] || "muted"} />
+      </td>
+      <td className="px-4 py-3 text-muted">
+        {user.team?.name || user.department?.name || "—"}
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-1.5">
+          <Input
+            aria-label={`${user.name}'s shift start`}
+            type="time"
+            value={shiftStart}
+            onChange={(e) => setShiftStart(e.target.value)}
+            className="w-24"
+          />
+          <span className="text-xs text-muted">to</span>
+          <Input
+            aria-label={`${user.name}'s shift end`}
+            type="time"
+            value={shiftEnd}
+            onChange={(e) => setShiftEnd(e.target.value)}
+            className="w-24"
+          />
+        </div>
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-2">
+          <Input
+            aria-label={`${user.name}'s morning deadline`}
+            type="time"
+            value={morningDeadline}
+            onChange={(e) => setMorningDeadline(e.target.value)}
+            className="w-24"
+          />
+          {morningDeadline ? (
+            <Badge value="Custom" tone="info" />
+          ) : (
+            <Badge value={`Default (${orgDeadline})`} tone="muted" />
+          )}
+        </div>
       </td>
       <td className="px-4 py-3 text-right">
-        <div className="flex justify-end gap-2">
-          <Button variant="secondary" disabled={!dirty || save.isPending} onClick={() => save.mutate(draft)}>
+        <div className="flex items-center justify-end gap-2">
+          <Button
+            variant="secondary"
+            disabled={!dirty || save.isPending}
+            onClick={() => save.mutate()}
+            className="px-2.5 py-1 text-xs"
+          >
             Save
           </Button>
-          {user.morningDeadline && (
-            <Button
-              variant="ghost"
-              disabled={save.isPending}
-              onClick={() => {
-                setDraft("");
-                save.mutate(null);
-              }}
-            >
-              Reset
-            </Button>
-          )}
+          <Button
+            variant="ghost"
+            aria-label={`Edit full details for ${user.name}`}
+            onClick={() => onEditDetails(user)}
+            className="p-1.5 text-muted hover:text-primary"
+            title="Edit full profile details"
+          >
+            <Pencil size={15} />
+          </Button>
         </div>
       </td>
     </tr>
   );
 }
 
-function DeadlinesTab({ orgDeadline }) {
+function MemberShiftsTab({ orgDeadline, onEditUser }) {
   const queryClient = useQueryClient();
-  const { data: users = [], isLoading } = useQuery({ queryKey: ["user-deadlines"], queryFn: fetchUserDeadlines });
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState("");
+  const [departmentFilter, setDepartmentFilter] = useState("");
 
-  const onSaved = () => queryClient.invalidateQueries({ queryKey: ["user-deadlines"] });
+  const { data: users = [], isLoading } = useQuery({ queryKey: ["users"], queryFn: fetchUsers });
+  const { data: departments = [] } = useQuery({ queryKey: ["departments"], queryFn: fetchDepartments });
+
+  const onSaved = () => {
+    queryClient.invalidateQueries({ queryKey: ["users"] });
+    queryClient.invalidateQueries({ queryKey: ["user-deadlines"] });
+  };
+
+  const filtered = useMemo(() => {
+    let list = users || [];
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter(
+        (u) =>
+          u.name.toLowerCase().includes(q) ||
+          (u.email || "").toLowerCase().includes(q) ||
+          (u.designation || "").toLowerCase().includes(q)
+      );
+    }
+    if (roleFilter) list = list.filter((u) => u.role === roleFilter);
+    if (departmentFilter) list = list.filter((u) => u.department?._id === departmentFilter || u.department === departmentFilter);
+    return list;
+  }, [users, search, roleFilter, departmentFilter]);
 
   if (isLoading) return <Skeleton className="h-64 w-full rounded-card" />;
-  if (users.length === 0) {
-    return <EmptyState icon={Clock3} heading="No employees yet" description="Tracked employees will show up here." />;
-  }
 
   return (
-    <div className="space-y-3">
-      <p className="text-xs text-muted">
-        Everyone starts on the org default ({orgDeadline}). Set an individual time for anyone whose shift starts
-        differently — the attendance sweep checks their own time first, falling back to the default otherwise.
-      </p>
-      <div className="overflow-x-auto rounded-card border border-border bg-surface">
-        <table className="w-full text-sm">
-          <thead className="sticky top-0 bg-surface">
-            <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
-              <th className="px-4 py-3 font-medium">Person</th>
-              <th className="px-4 py-3 font-medium">Team</th>
-              <th className="px-4 py-3 font-medium">Deadline</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3" />
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((u) => (
-              <DeadlineRow key={u._id} user={u} orgDeadline={orgDeadline} onSaved={onSaved} />
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-xs text-muted">
+          Manage shift timings and morning follow-up deadlines for all members. Individual deadlines override the org default ({orgDeadline}).
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative">
+            <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+            <input
+              aria-label="Search members"
+              placeholder="Search member…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-48 rounded-input border border-border bg-surface py-1.5 pl-8 pr-3 text-xs outline-none focus:border-primary"
+            />
+          </div>
+          <select
+            aria-label="Filter by role"
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className="rounded-input border border-border bg-surface px-2.5 py-1.5 text-xs outline-none focus:border-primary"
+          >
+            <option value="">All roles</option>
+            <option value="member">Member</option>
+            <option value="sublead">Sub Lead</option>
+            <option value="manager">Manager</option>
+            <option value="qa">QA</option>
+            <option value="hr">HR</option>
+            <option value="subadmin">Sub Admin</option>
+          </select>
+          <select
+            aria-label="Filter by department"
+            value={departmentFilter}
+            onChange={(e) => setDepartmentFilter(e.target.value)}
+            className="rounded-input border border-border bg-surface px-2.5 py-1.5 text-xs outline-none focus:border-primary"
+          >
+            <option value="">All departments</option>
+            {departments.map((d) => (
+              <option key={d._id} value={d._id}>
+                {d.name}
+              </option>
             ))}
-          </tbody>
-        </table>
+          </select>
+        </div>
       </div>
+
+      {filtered.length === 0 ? (
+        <EmptyState
+          icon={Clock3}
+          heading={search || roleFilter ? "No members match your filters" : "No members found"}
+          description="Members and their shift schedules will appear here."
+        />
+      ) : (
+        <div className="overflow-x-auto rounded-card border border-border bg-surface">
+          <table className="w-full text-sm">
+            <thead className="sticky top-0 bg-surface">
+              <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
+                <th className="px-4 py-3 font-medium">Member</th>
+                <th className="px-4 py-3 font-medium">Role</th>
+                <th className="px-4 py-3 font-medium">Team / Dept</th>
+                <th className="px-4 py-3 font-medium">Shift Timing</th>
+                <th className="px-4 py-3 font-medium">Morning Deadline</th>
+                <th className="px-4 py-3 text-right font-medium">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((u) => (
+                <MemberShiftRow
+                  key={u._id}
+                  user={u}
+                  orgDeadline={orgDeadline}
+                  onSaved={onSaved}
+                  onEditDetails={onEditUser}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
@@ -150,12 +270,17 @@ export default function HrPortalPage() {
   const [month, setMonth] = useState(() => monthStr());
   const [form, setForm] = useState({ user: "", date: todayStr(), type: "late", note: "" });
   const [apiError, setApiError] = useState("");
+  const [dialogUser, setDialogUser] = useState(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
   // null = untouched — falls back to the server value until the user edits it.
   const [draftDeadline, setDraftDeadline] = useState(null);
   const [draftOffice, setDraftOffice] = useState(null);
   const [locatingOffice, setLocatingOffice] = useState(false);
 
   const { data: users = [] } = useQuery({ queryKey: ["users"], queryFn: fetchUsers, enabled: isHr });
+  const { data: departments = [] } = useQuery({ queryKey: ["departments"], queryFn: fetchDepartments, enabled: isHr });
+  const { data: teams = [] } = useQuery({ queryKey: ["teams"], queryFn: fetchTeams, enabled: isHr });
   const employees = useMemo(() => users.filter((u) => TRACKED_ROLES.includes(u.role)), [users]);
 
   const { data: records = [], isLoading } = useQuery({
@@ -253,7 +378,7 @@ export default function HrPortalPage() {
   }
 
   return (
-    <div className="mx-auto max-w-[1100px] space-y-6">
+    <div className="mx-auto max-w-[1200px] space-y-6">
       <div>
         <h1 className="text-xl font-semibold tracking-tight">HR portal</h1>
         <p className="mt-1 text-sm text-muted">
@@ -323,7 +448,7 @@ export default function HrPortalPage() {
         {[
           ["mark", "Mark attendance"],
           ["report", "Monthly report"],
-          ["deadlines", "Per-employee deadlines"],
+          ["shifts", "Member shifts & details"],
         ].map(([key, label]) => (
           <button
             key={key}
@@ -498,8 +623,27 @@ export default function HrPortalPage() {
           )}
         </>
       ) : (
-        <DeadlinesTab orgDeadline={config?.morningDeadline ?? "10:00"} />
+        <MemberShiftsTab
+          orgDeadline={config?.morningDeadline ?? "10:00"}
+          onEditUser={(u) => {
+            setDialogUser(u);
+            setDialogOpen(true);
+          }}
+        />
+      )}
+
+      {dialogOpen && (
+        <UserDialog
+          open={dialogOpen}
+          onClose={() => setDialogOpen(false)}
+          user={dialogUser}
+          directory={users || []}
+          departments={departments}
+          teams={teams}
+          actor={me}
+        />
       )}
     </div>
   );
 }
+

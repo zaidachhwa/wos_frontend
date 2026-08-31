@@ -42,15 +42,20 @@ const schema = yup.object({
   }),
   shiftStart: yup.string().nullable(),
   shiftEnd: yup.string().nullable(),
+  morningDeadline: yup.string().nullable(),
 });
 
 export default function UserDialog({ open, onClose: onCloseProp, user, directory, departments, teams, actor }) {
   const isEdit = Boolean(user);
   const isAdminActor = actor?.role === "admin";
+  const isHrActor = actor?.role === "hr";
   const isSubadminActor = actor?.role === "subadmin";
+  const canManageOrgWide = isAdminActor || isHrActor;
   const selectableRoles = isAdminActor
     ? ["member", "sublead", "manager", "subadmin", "admin", "hr", "qa", "director"]
-    : MANAGEABLE_ROLES[actor?.role] || [];
+    : isHrActor
+      ? ["member", "sublead", "manager", "qa", "hr"]
+      : MANAGEABLE_ROLES[actor?.role] || [];
   const managedDepartmentId = actor?.managedDepartment?._id || actor?.managedDepartment;
   const actorManagedTeamIds =
     actor?.role === "manager"
@@ -102,6 +107,7 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
         isActive: user ? String(user.isActive) : "true",
         shiftStart: user?.shiftStart || "",
         shiftEnd: user?.shiftEnd || "",
+        morningDeadline: user?.morningDeadline || "",
       });
     }
   }, [open, user, reset]);
@@ -124,6 +130,7 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
         isActive: values.isActive === "true",
         shiftStart: values.shiftStart || null,
         shiftEnd: values.shiftEnd || null,
+        morningDeadline: values.morningDeadline || null,
       };
       if (isEdit) {
         const { email, password, ...rest } = payload;
@@ -134,12 +141,13 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       queryClient.invalidateQueries({ queryKey: ["directory"] });
+      queryClient.invalidateQueries({ queryKey: ["user-deadlines"] });
       onClose();
     },
     onError: (error) => setApiError(error.response?.data?.message || "Something went wrong"),
   });
 
-  const managers = directory.filter((d) => ["admin", "manager", "sublead"].includes(d.role));
+  const managers = directory.filter((d) => ["admin", "manager", "sublead", "director"].includes(d.role));
 
   const { data: memos = [] } = useQuery({
     queryKey: ["user-memos", user?._id],
@@ -192,7 +200,14 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
         <Input label="Designation" {...register("designation")} />
         <Input label="Shift start" type="time" error={errors.shiftStart?.message} {...register("shiftStart")} />
         <Input label="Shift end" type="time" error={errors.shiftEnd?.message} {...register("shiftEnd")} />
-        {isAdminActor && (
+        <Input
+          label="Morning deadline override"
+          type="time"
+          error={errors.morningDeadline?.message}
+          {...register("morningDeadline")}
+          title="Custom morning follow-up deadline for this employee (overrides org default)"
+        />
+        {canManageOrgWide && (
           <Input
             label="Joined on"
             type="date"
@@ -200,7 +215,7 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
             title="Drives the appraisal tenure band — 0–6 / 6–12 / 12+ months. Defaults to account creation date if left blank."
           />
         )}
-        {isAdminActor && (
+        {canManageOrgWide && (
           <Select label="Department" {...register("department")}>
             <option value="">None</option>
             {departments.map((d) => (
@@ -230,7 +245,7 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
           <div className="animate-[fadeIn_150ms_ease-out]">
             <Select label="Managed team" error={errors.managedTeam?.message} {...register("managedTeam")}>
               <option value="">Select team…</option>
-              {(isAdminActor ? teamPickerItems : visibleTeams).map((t) => (
+              {(canManageOrgWide ? teamPickerItems : visibleTeams).map((t) => (
                 <option key={t._id} value={t._id}>
                   {t.name}
                 </option>
@@ -247,7 +262,7 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
               render={({ field }) => (
                 <MultiSelect
                   label="Managed teams"
-                  items={isAdminActor ? teamPickerItems : visibleTeams}
+                  items={canManageOrgWide ? teamPickerItems : visibleTeams}
                   value={field.value}
                   onChange={field.onChange}
                   placeholder="None yet"
@@ -259,14 +274,14 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
         {selectedRole !== "subadmin" && (
           <Select label="Team" {...register("team")}>
             <option value="">None</option>
-            {visibleTeams.map((t) => (
+            {(canManageOrgWide ? teamPickerItems : visibleTeams).map((t) => (
               <option key={t._id} value={t._id}>
                 {t.name}
               </option>
             ))}
           </Select>
         )}
-        {isAdminActor && (
+        {canManageOrgWide && (
           <Select label="Reporting manager" {...register("reportingManager")}>
             <option value="">None</option>
             {managers

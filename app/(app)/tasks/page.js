@@ -41,14 +41,15 @@ const BUCKET_ORDER = ["Overdue", "Today", "Upcoming", "No deadline"];
 
 export default function TasksPage() {
   const me = useAuthStore((s) => s.user);
-  const canCreate = ["admin", "manager", "subadmin", "sublead", "member"].includes(me?.role);
+  const canCreate = ["admin", "manager", "subadmin", "sublead", "member", "director"].includes(me?.role);
   const canBulk = ["admin", "manager", "subadmin", "sublead"].includes(me?.role);
   const canApprove = ["admin", "manager", "subadmin", "sublead"].includes(me?.role);
+  const isDirector = me?.role === "director";
   const queryClient = useQueryClient();
   const toast = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [scope, setScope] = useState("me");
+  const [scope, setScope] = useState(isDirector ? "me" : "me");
   const [status, setStatus] = useState("");
   const [projectFilter, setProjectFilter] = useState("");
   const [search, setSearch] = useState("");
@@ -133,7 +134,7 @@ export default function TasksPage() {
           <div className="flex gap-1 rounded-btn border border-border bg-surface p-1">
             {[
               ["me", "My tasks"],
-              ["all", "All visible"],
+              ...(!isDirector ? [["all", "All visible"]] : []),
               ...(canApprove ? [["approvals", "Approvals"]] : []),
             ].map(([key, label]) => (
               <button
@@ -293,7 +294,12 @@ export default function TasksPage() {
 
       <TaskDrawer task={openTask} onClose={closeTask} directory={directory} />
       {canCreate && (
-        <TaskDialog open={createOpen} onClose={() => setCreateOpen(false)} projects={projects} directory={directory} />
+        <TaskDialog
+          open={createOpen}
+          onClose={() => setCreateOpen(false)}
+          projects={projects}
+          directory={isDirector ? directory.filter((u) => u.role === "hr") : directory}
+        />
       )}
     </div>
   );

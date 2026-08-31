@@ -23,7 +23,7 @@ const complianceTone = (rate) =>
 
 export default function ReportsPage() {
   const me = useAuthStore((s) => s.user);
-  const isManager = ["admin", "manager", "subadmin"].includes(me?.role);
+  const isManager = ["admin", "manager", "subadmin", "hr", "director"].includes(me?.role);
 
   const [from, setFrom] = useState(weekAgo());
   const [to, setTo] = useState(dayStr(new Date()));

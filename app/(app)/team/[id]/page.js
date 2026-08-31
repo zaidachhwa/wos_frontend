@@ -124,8 +124,22 @@ export default function TeamMemberProfilePage({ params }) {
             ["Department", user.department?.name || "—"],
             ["Team", user.team?.name || "—"],
             ["Reporting manager", user.reportingManager?.name || "—"],
+            [
+              "Shift timing",
+              user.shiftStart && user.shiftEnd
+                ? `${user.shiftStart} – ${user.shiftEnd}`
+                : user.shiftStart
+                  ? `From ${user.shiftStart}`
+                  : "Not set",
+            ],
+            ["Morning follow-up deadline", user.morningDeadline ? `${user.morningDeadline} (Custom)` : "Org default"],
             ["Status", user.isActive ? "Active" : "Inactive"],
-            ["Member since", new Date(user.createdAt).toLocaleDateString()],
+            [
+              "Joined on",
+              user.joinedAt
+                ? new Date(user.joinedAt).toLocaleDateString()
+                : new Date(user.createdAt).toLocaleDateString(),
+            ],
           ].map(([label, value]) => (
             <div key={label}>
               <p className="text-xs font-medium uppercase tracking-wide text-muted">{label}</p>

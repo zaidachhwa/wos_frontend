@@ -18,7 +18,7 @@ export default function AnalyticsPage() {
   const me = useAuthStore((s) => s.user);
   const canAccess = ["admin", "manager", "subadmin", "hr"].includes(me?.role);
 
-  // Filters state
+  // Filters state — all hooks must be unconditionally called (Rules of Hooks).
   const [dateRange, setDateRange] = useState("thisMonth");
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
@@ -26,23 +26,15 @@ export default function AnalyticsPage() {
   const [selectedProject, setSelectedProject] = useState("");
   const [minHours, setMinHours] = useState("");
   const [maxHours, setMaxHours] = useState("");
-  
-  // Tab state
   const [activeTab, setActiveTab] = useState("projects"); // "projects" or "users"
-  
-  // Table state
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState("timeDesc"); // timeDesc, timeAsc, nameAsc, nameDesc
 
-  if (!canAccess) {
-    return <div className="p-8 text-center text-muted">You do not have permission to view Analytics.</div>;
-  }
-
-  // Derived filter params
+  // Derived date params (plain JS, not hooks — computed before queries but
+  // must NOT move above state declarations).
   let startDate = "";
   let endDate = "";
   const today = new Date();
-  
   if (dateRange === "today") {
     startDate = today.toISOString().split("T")[0];
     endDate = startDate;
@@ -68,26 +60,44 @@ export default function AnalyticsPage() {
     maxHours: maxHours || undefined,
     sort,
     page,
-    limit: 10
+    limit: 10,
   };
 
+  // All useQuery calls are unconditional — enabled:canAccess prevents real
+  // network requests for unauthorized roles without violating Rules of Hooks.
   const { data: summary, isLoading: loadingSummary } = useQuery({
     queryKey: ["analytics", "dashboard", queryParams],
     queryFn: () => fetchDashboardSummary(queryParams),
+    enabled: canAccess,
   });
 
   const { data: projectData, isLoading: loadingProjects } = useQuery({
     queryKey: ["analytics", "projects", queryParams],
     queryFn: () => fetchProjectAnalytics(queryParams),
+    enabled: canAccess,
   });
 
   const { data: userData, isLoading: loadingUsers } = useQuery({
     queryKey: ["analytics", "users", queryParams],
     queryFn: () => fetchUserAnalytics(queryParams),
+    enabled: canAccess,
   });
 
-  const { data: allProjects = [] } = useQuery({ queryKey: ["projects"], queryFn: fetchProjects });
-  const { data: allUsers = [] } = useQuery({ queryKey: ["users"], queryFn: fetchUsers });
+  const { data: allProjects = [] } = useQuery({
+    queryKey: ["projects"],
+    queryFn: fetchProjects,
+    enabled: canAccess,
+  });
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ["users"],
+    queryFn: fetchUsers,
+    enabled: canAccess,
+  });
+
+  // Early return AFTER all hooks — safe for Rules of Hooks.
+  if (!canAccess) {
+    return <div className="p-8 text-center text-muted">You do not have permission to view Analytics.</div>;
+  }
 
   const resetFilters = () => {
     setDateRange("thisMonth");

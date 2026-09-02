@@ -16,7 +16,7 @@ const COLORS = ["#0ea5e9", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"
 
 export default function AnalyticsPage() {
   const me = useAuthStore((s) => s.user);
-  const canAccess = ["admin", "manager", "subadmin", "hr"].includes(me?.role);
+  const canAccess = ["admin", "manager", "subadmin", "hr", "director"].includes(me?.role);
 
   // Filters state — all hooks must be unconditionally called (Rules of Hooks).
   const [dateRange, setDateRange] = useState("thisMonth");

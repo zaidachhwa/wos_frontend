@@ -231,11 +231,6 @@ export default function TaskDialog({ open, onClose: onCloseProp, projects, direc
           </p>
         ) : (
           <>
-            {isDirector && (
-              <p className="rounded-input border border-info/30 bg-info/5 px-3 py-2 text-sm text-info">
-                As Director, you can only assign tasks to HR users. HR will complete and close these tasks.
-              </p>
-            )}
             <Controller
               name="assignees"
               control={control}

@@ -22,7 +22,7 @@ const PODIUM_TONES = ["text-warning", "text-muted", "text-warning/70"];
 
 export default function LeaderboardPage() {
   const me = useAuthStore((s) => s.user);
-  const isReporter = ["admin", "manager", "subadmin"].includes(me?.role);
+  const isReporter = ["admin", "manager", "subadmin", "hr", "director"].includes(me?.role);
   const [anchor, setAnchor] = useState(() => dayStr(new Date()));
   const [team, setTeam] = useState("");
 

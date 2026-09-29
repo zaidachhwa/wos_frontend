@@ -71,13 +71,3 @@ export const updateTeamThresholds = async ({ id, ...payload }) => {
 export const deleteTeam = async (id) => {
   await axiosInstance.delete(`/teams/${id}`);
 };
-
-export const fetchUserMemos = async (id) => {
-  const { data } = await axiosInstance.get(`/users/${id}/memos`);
-  return data.data.memos;
-};
-
-export const resetUserMemos = async (id) => {
-  const { data } = await axiosInstance.post(`/users/${id}/memos/reset`);
-  return data.data.user;
-};

@@ -14,6 +14,7 @@ import {
   ClipboardCheck,
   UserCog,
   PieChart,
+  Bug,
 } from "lucide-react";
 
 export const NAV_ITEMS = [
@@ -27,6 +28,7 @@ export const NAV_ITEMS = [
   { href: "/reports", label: "Reports", icon: BarChart3, roles: ["admin", "manager", "subadmin", "hr", "director"] },
   { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
   { href: "/appraisal", label: "Appraisal", icon: ClipboardCheck },
+  { href: "/bugs", label: "Bugs", icon: Bug, roles: ["admin", "hr", "director", "manager", "sublead", "subadmin", "qa"] },
   { href: "/hr", label: "HR Portal", icon: UserCog, roles: ["admin", "hr"] },
   { href: "/admin/leaderboard", label: "Leaderboard settings", icon: Sliders, roles: ["admin"] },
   { href: "/admin/department-violations", label: "Department violations", icon: AlertTriangle, roles: ["admin"] },

@@ -2,7 +2,24 @@
 
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { CalendarOff, Clock3, Download, MapPin, Pencil, Search, ShieldAlert, Sparkles, Trash2, UserPlus } from "lucide-react";
+import Link from "next/link";
+import {
+  AlertOctagon,
+  CalendarOff,
+  ClipboardCheck,
+  Clock3,
+  Download,
+  FileWarning,
+  MailCheck,
+  MapPin,
+  Pencil,
+  RotateCcw,
+  Search,
+  ShieldAlert,
+  Sparkles,
+  Trash2,
+  UserPlus,
+} from "lucide-react";
 
 import EmptyState from "@/components/ui/EmptyState";
 import Skeleton from "@/components/ui/Skeleton";
@@ -372,7 +389,7 @@ export default function HrPortalPage() {
       <EmptyState
         icon={ShieldAlert}
         heading="HR only"
-        description="This portal is for tracking employee attendance — late arrivals and leaves feed straight into their appraisal."
+        description="This portal is for tracking employee attendance — late arrivals and leaves."
       />
     );
   }
@@ -383,8 +400,32 @@ export default function HrPortalPage() {
         <h1 className="text-xl font-semibold tracking-tight">HR portal</h1>
         <p className="mt-1 text-sm text-muted">
           Attendance is read off the morning follow-up: no submission for the day auto-marks someone absent,
-          a late submission auto-marks them late. Every entry counts against that month&apos;s appraisal score.
+          a late submission auto-marks them late. These records are for attendance tracking only — the monthly
+          appraisal uses the leaves and late marks HR enters under Appraisal → Monthly inputs.
         </p>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-info/30 bg-info/5 p-4">
+        <div className="flex items-start gap-3">
+          <ClipboardCheck size={18} className="mt-0.5 shrink-0 text-info" />
+          <div>
+            <p className="text-sm font-semibold">Monthly performance appraisal</p>
+            <p className="mt-0.5 text-xs text-muted">
+              Rate employees (Poor / Average / Excellent), enter leaves and late marks, and finalize appraisals.
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/appraisal/inputs" className="rounded-btn border border-border bg-surface px-3 py-2 text-sm font-medium hover:bg-background">
+            Leaves & late marks
+          </Link>
+          <Link href="/appraisal" className="rounded-btn bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90">
+            Rate employees
+          </Link>
+          <Link href="/appraisal/settings" className="rounded-btn border border-border bg-surface px-3 py-2 text-sm font-medium hover:bg-background">
+            Criteria settings
+          </Link>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-end gap-3 rounded-card border border-border bg-surface p-4">

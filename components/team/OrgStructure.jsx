@@ -62,9 +62,14 @@ function ThresholdEditor({ team, onSaved }) {
 }
 
 export default function OrgStructure({ departments, teams, me }) {
-  const canManageDepartments = me?.role === "admin";
+  // Admin and HR add departments/teams org-wide; only admin deletes
+  // departments (mirrors orgRoutes). Sub-admins still add/delete teams in
+  // their own department.
+  const canManageDepartments = me?.role === "admin" || me?.role === "hr";
+  const canDeleteDepartments = me?.role === "admin";
+  const canDeleteTeams = me?.role === "admin" || me?.role === "subadmin";
   const managedTeamId = String(me?.managedTeam?._id || me?.managedTeam || "");
-  const canEditThresholds = (t) => canManageDepartments || (me?.role === "manager" && String(t._id) === managedTeamId);
+  const canEditThresholds = (t) => me?.role === "admin" || (me?.role === "manager" && String(t._id) === managedTeamId);
   const queryClient = useQueryClient();
   const [deptName, setDeptName] = useState("");
   const [teamName, setTeamName] = useState("");
@@ -129,13 +134,15 @@ export default function OrgStructure({ departments, teams, me }) {
           {departments.map((d) => (
             <li key={d._id} className="flex items-center justify-between py-2.5 text-sm">
               <span className="font-medium">{d.name}</span>
-              <button
-                onClick={() => removeDept.mutate(d._id)}
-                aria-label={`Delete ${d.name}`}
-                className="rounded-btn p-1.5 text-muted transition-colors duration-150 hover:bg-danger/10 hover:text-danger"
-              >
-                <Trash2 size={15} />
-              </button>
+              {canDeleteDepartments && (
+                <button
+                  onClick={() => removeDept.mutate(d._id)}
+                  aria-label={`Delete ${d.name}`}
+                  className="rounded-btn p-1.5 text-muted transition-colors duration-150 hover:bg-danger/10 hover:text-danger"
+                >
+                  <Trash2 size={15} />
+                </button>
+              )}
             </li>
           ))}
           {!departments.length && <li className="py-2.5 text-sm text-muted">No departments yet.</li>}
@@ -185,13 +192,15 @@ export default function OrgStructure({ departments, teams, me }) {
                   <span className="font-medium">{t.name}</span>
                   <span className="ml-2 text-xs text-muted">{deptNameOf(t)}</span>
                 </span>
-                <button
-                  onClick={() => removeTeam.mutate(t._id)}
-                  aria-label={`Delete ${t.name}`}
-                  className="rounded-btn p-1.5 text-muted transition-colors duration-150 hover:bg-danger/10 hover:text-danger"
-                >
-                  <Trash2 size={15} />
-                </button>
+                {canDeleteTeams && (
+                  <button
+                    onClick={() => removeTeam.mutate(t._id)}
+                    aria-label={`Delete ${t.name}`}
+                    className="rounded-btn p-1.5 text-muted transition-colors duration-150 hover:bg-danger/10 hover:text-danger"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                )}
               </div>
               {canEditThresholds(t) && <ThresholdEditor team={t} onSaved={invalidate} />}
             </li>

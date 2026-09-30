@@ -163,7 +163,9 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
   if (!open) return null;
 
   const isAssignee = task?.assignees?.some((a) => a._id === me?._id);
-  const canManage = ["admin", "manager", "subadmin", "sublead"].includes(me?.role);
+  // HR fully manages only the tasks HR created (mirrors taskController's isHrCreator).
+  const isHrCreator = me?.role === "hr" && String(task?.createdBy?._id || task?.createdBy) === String(me?._id);
+  const canManage = ["admin", "manager", "subadmin", "sublead"].includes(me?.role) || isHrCreator;
   const canEditStatus = canManage || isAssignee;
   // Flagging a bug/client change is gated separately from general task
   // management — mirrors taskController.js's canFlagDefects. A task

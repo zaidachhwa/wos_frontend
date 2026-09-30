@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { MessageSquare } from "lucide-react";
 
+import { ProjectHoursInline, ProjectHoursSummary, ProjectHoursTable } from "@/components/followups/ProjectHours";
 import Badge from "@/components/ui/Badge";
 import Dialog from "@/components/ui/Dialog";
 import EmptyState from "@/components/ui/EmptyState";
@@ -88,6 +89,8 @@ export default function TeamFollowUps({ today, canReview }) {
         </div>
       </div>
 
+      {type === "evening" && !isLoading && <ProjectHoursSummary followUps={filteredRows} />}
+
       {isLoading ? (
         <Skeleton className="h-40 w-full rounded-card" />
       ) : filteredRows?.length ? (
@@ -106,6 +109,7 @@ export default function TeamFollowUps({ today, canReview }) {
                 <div>
                   <p className="text-sm font-medium">{row.user?.name}</p>
                   <p className="text-xs capitalize text-muted">{row.user?.role}</p>
+                  {type === "evening" && row.status !== "missing" && <ProjectHoursInline followUp={row} />}
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -159,6 +163,7 @@ export default function TeamFollowUps({ today, canReview }) {
                   <p className="mt-0.5 whitespace-pre-wrap">{String(v ?? "—") || "—"}</p>
                 </div>
               ))}
+            {type === "evening" && <ProjectHoursTable followUp={reviewing} />}
             {reviewing.managerComment && (
               <div className="rounded-input border border-success/30 bg-success/5 px-3 py-2">
                 <p className="text-xs font-medium text-success">Manager comment</p>

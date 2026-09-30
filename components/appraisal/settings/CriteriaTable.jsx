@@ -1,22 +1,34 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, ArrowDown, ArrowUp, Pencil, Plus, Scale, Trash2 } from "lucide-react";
 
 import AllocationDialog from "@/components/appraisal/settings/AllocationDialog";
 import CriterionDialog from "@/components/appraisal/settings/CriterionDialog";
 import Badge from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Field";
+import { Button, Select } from "@/components/ui/Field";
 import useToast from "@/hooks/useToast";
 import { deleteCriterion, reorderCriteria } from "@/services/appraisalsService";
+import { fetchDepartments } from "@/services/orgService";
 import { METHOD_LABELS, TYPE_LABELS, apiError, fmtScore } from "@/lib/appraisal";
 
 export default function CriteriaTable({ criteria, weightage, catalog }) {
   const toast = useToast();
   const queryClient = useQueryClient();
+  const { data: departments = [] } = useQuery({ queryKey: ["departments"], queryFn: fetchDepartments });
+  const deptName = new Map(departments.map((d) => [String(d._id), d.name]));
+  const appliesTo = (c) =>
+    c.departments?.length ? c.departments.map((id) => deptName.get(String(id)) || "Deleted department").join(", ") : "All departments";
   const [editing, setEditing] = useState(undefined); // undefined = closed, null = new
   const [allocation, setAllocation] = useState(null); // null = closed, { focusId }
+  const [deptFilter, setDeptFilter] = useState(""); // "" = all criteria
+
+  // Department view: only the criteria that apply there, at that
+  // department's own weightage (its override, else the default).
+  const overrideIn = (c) => (c.departmentWeightages || []).find((o) => String(o.department) === deptFilter);
+  const shown = deptFilter ? criteria.filter((c) => !c.departments?.length || c.departments.map(String).includes(deptFilter)) : criteria;
+  const deptStatus = deptFilter ? (weightage.byDepartment || []).find((d) => d.departmentId === deptFilter) : null;
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["appraisal-settings"] });
 
   const reorder = useMutation({ mutationFn: reorderCriteria, onSuccess: refresh, onError: (e) => toast.error(apiError(e)) });
@@ -39,12 +51,31 @@ export default function CriteriaTable({ criteria, weightage, catalog }) {
   return (
     <section className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className={`flex items-center gap-2 text-sm font-medium ${weightage.valid ? "text-success" : "text-danger"}`}>
-          {!weightage.valid && <AlertTriangle size={15} />}
-          Active weightage: {weightage.total}% {weightage.valid ? "— valid" : `— ${weightage.message}`}
-        </p>
-        <div className="flex gap-2">
-          <Button variant="secondary" onClick={() => setAllocation({})}>
+        <div className="space-y-1">
+          <p className={`flex items-center gap-2 text-sm font-medium ${weightage.valid ? "text-success" : "text-danger"}`}>
+            {!weightage.valid && <AlertTriangle size={15} />}
+            {weightage.valid ? "Every department totals 100%" : "Weightage must total 100% in every department"}
+          </p>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+            {(weightage.byDepartment || []).map((d) => (
+              <span key={d.departmentId || "none"} className={d.valid ? "text-muted" : "font-medium text-danger"}>
+                {d.name}: {d.total}%
+              </span>
+            ))}
+          </div>
+        </div>
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="w-56">
+            <Select label="Department" value={deptFilter} onChange={(e) => setDeptFilter(e.target.value)}>
+              <option value="">All criteria</option>
+              {departments.map((d) => (
+                <option key={d._id} value={String(d._id)}>
+                  {d.name}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <Button variant="secondary" onClick={() => setAllocation({ scope: deptFilter || undefined })}>
             <Scale size={15} /> Adjust weightage
           </Button>
           <Button onClick={() => setEditing(null)}>
@@ -53,20 +84,43 @@ export default function CriteriaTable({ criteria, weightage, catalog }) {
         </div>
       </div>
 
+      {deptStatus && (
+        <div
+          role="status"
+          className={`flex flex-wrap items-center justify-between gap-2 rounded-card border px-4 py-3 text-sm ${
+            deptStatus.valid ? "border-success/30 bg-success/5" : "border-danger/30 bg-danger/5"
+          }`}
+        >
+          <span>
+            <span className="font-semibold">{deptStatus.name}</span> — {shown.filter((c) => c.isActive).length} active criteria apply, totalling{" "}
+            <span className={`font-semibold tabular-nums ${deptStatus.valid ? "text-success" : "text-danger"}`}>{deptStatus.total}%</span>
+          </span>
+          {!deptStatus.valid && <span className="text-danger">{deptStatus.message} Appraisals here can&apos;t be finalized yet.</span>}
+        </div>
+      )}
+
       <div className="overflow-x-auto rounded-card border border-border bg-surface">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
               <th className="px-4 py-3 font-medium">Criterion</th>
               <th className="px-4 py-3 font-medium">Type</th>
-              <th className="px-4 py-3 text-right font-medium">Weightage</th>
+              <th className="px-4 py-3 font-medium">Applies to</th>
+              <th className="px-4 py-3 text-right font-medium">{deptStatus ? `Weightage (${deptStatus.name})` : "Weightage"}</th>
               <th className="px-4 py-3 font-medium">Scoring method</th>
               <th className="px-4 py-3 font-medium">Status</th>
               <th className="px-4 py-3 text-right font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {criteria.map((c, i) => (
+            {shown.length === 0 && (
+              <tr>
+                <td colSpan={7} className="px-4 py-8 text-center text-sm text-muted">
+                  No criteria apply to this department yet.
+                </td>
+              </tr>
+            )}
+            {shown.map((c, i) => (
               <tr key={c._id} className="border-b border-border/60 last:border-0">
                 <td className="px-4 py-3">
                   <p className={`font-medium ${c.isActive ? "" : "text-muted"}`}>{c.name}</p>
@@ -75,23 +129,50 @@ export default function CriteriaTable({ criteria, weightage, catalog }) {
                   </p>
                 </td>
                 <td className="px-4 py-3">{TYPE_LABELS[c.type]}</td>
-                <td className="px-4 py-3 text-right tabular-nums">{fmtScore(c.weightage)}%</td>
+                <td className={`max-w-48 truncate px-4 py-3 ${c.departments?.length ? "" : "text-muted"}`} title={appliesTo(c)}>
+                  {appliesTo(c)}
+                </td>
+                <td className="px-4 py-3 text-right tabular-nums">
+                  {deptFilter ? fmtScore(overrideIn(c)?.weightage ?? c.weightage) : fmtScore(c.weightage)}%
+                  {deptFilter ? (
+                    <span className={`block text-xs ${overrideIn(c) ? "text-info" : "text-muted"}`}>
+                      {overrideIn(c) ? `department-specific (default ${fmtScore(c.weightage)}%)` : "default"}
+                    </span>
+                  ) : c.departmentWeightages?.length > 0 && (
+                    <span
+                      className="block text-xs text-info"
+                      title={c.departmentWeightages.map((o) => `${deptName.get(String(o.department)) || "Deleted department"}: ${o.weightage}%`).join("\n")}
+                    >
+                      varies by dept
+                    </span>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-muted">{METHOD_LABELS[c.scoringMethod]}</td>
                 <td className="px-4 py-3">
                   <Badge value={c.isActive ? "Active" : "Inactive"} tone={c.isActive ? "success" : "muted"} />
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-1">
-                    <Button variant="ghost" aria-label="Move up" disabled={i === 0 || reorder.isPending} onClick={() => move(i, -1)} className="px-2">
-                      <ArrowUp size={14} />
-                    </Button>
-                    <Button variant="ghost" aria-label="Move down" disabled={i === criteria.length - 1 || reorder.isPending} onClick={() => move(i, 1)} className="px-2">
-                      <ArrowDown size={14} />
-                    </Button>
+                    {!deptFilter && (
+                      <>
+                        <Button variant="ghost" aria-label="Move up" disabled={i === 0 || reorder.isPending} onClick={() => move(i, -1)} className="px-2">
+                          <ArrowUp size={14} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          aria-label="Move down"
+                          disabled={i === criteria.length - 1 || reorder.isPending}
+                          onClick={() => move(i, 1)}
+                          className="px-2"
+                        >
+                          <ArrowDown size={14} />
+                        </Button>
+                      </>
+                    )}
                     <Button variant="ghost" aria-label={`Edit ${c.name}`} onClick={() => setEditing(c)} className="px-2">
                       <Pencil size={14} />
                     </Button>
-                    <Button variant="ghost" onClick={() => setAllocation({ focusId: c._id })} className="px-2 text-xs">
+                    <Button variant="ghost" onClick={() => setAllocation({ focusId: c._id, scope: deptFilter || undefined })} className="px-2 text-xs">
                       {c.isActive ? "Deactivate" : "Activate"}
                     </Button>
                     {!c.isActive && !c.usedInFinalized && (
@@ -112,16 +193,19 @@ export default function CriteriaTable({ criteria, weightage, catalog }) {
         </table>
       </div>
       <p className="text-xs text-muted">
-        Criteria used in a finalized appraisal can only be deactivated, never deleted. Activating or deactivating opens the weightage dialog so
-        the active total stays at 100%.
+        Criteria used in a finalized appraisal can only be deactivated, never deleted. You can change criteria in any order — a department
+        shown in red above can&apos;t have its appraisals finalized until its total is back at 100%.
       </p>
 
-      <CriterionDialog open={editing !== undefined} onClose={() => setEditing(undefined)} criterion={editing || null} catalog={catalog} />
+      <CriterionDialog open={editing !== undefined} onClose={() => setEditing(undefined)} criterion={editing || null} catalog={catalog} departments={departments} />
       {allocation && (
         <AllocationDialog
           open
           onClose={() => setAllocation(null)}
           focusId={allocation.focusId}
+          initialScope={allocation.scope}
+          departments={departments}
+          appliesTo={appliesTo}
           criteria={criteria.map((c) => (c._id === allocation.focusId ? { ...c, isActive: !c.isActive } : c))}
         />
       )}

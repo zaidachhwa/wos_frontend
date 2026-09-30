@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useFieldArray, useForm, useWatch } from "react-hook-form";
+import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2 } from "lucide-react";
 
+import DepartmentPicker from "@/components/appraisal/settings/DepartmentPicker";
 import Dialog from "@/components/ui/Dialog";
 import { Button, Input, Select, Textarea } from "@/components/ui/Field";
 import useToast from "@/hooks/useToast";
@@ -25,6 +26,11 @@ const schema = yup.object({
   params: yup.object({ target: num(), unitPct: num().min(0), freeUnits: num().min(0), floorPct: num().min(0).max(100), noDataPct: num().min(0).max(100) }),
   ratingOptions: yup.array().of(yup.object({ label: yup.string().trim().required("Label required"), pct: num().required("% required").min(0).max(100) })),
   bands: yup.array().of(yup.object({ min: num().required(), max: num(), pct: num().required().min(0).max(100) })),
+  scope: yup.string().oneOf(["all", "selected"]),
+  departments: yup.array().when("scope", {
+    is: "selected",
+    then: (s) => s.min(1, "Tick at least one department, or choose All departments"),
+  }),
 });
 
 const DEFAULT_RATINGS = [
@@ -33,10 +39,11 @@ const DEFAULT_RATINGS = [
   { label: "Excellent", pct: 100 },
 ];
 
-// Add/edit a criterion's *definition*. Weightage/activation changes that
-// would break the 100% total are rejected by the server — the "Adjust
-// weightage" dialog is the way to rebalance several at once.
-export default function CriterionDialog({ open, onClose: onCloseProp, criterion, catalog }) {
+// Add/edit a criterion's definition, applicability and weightage. Saving is
+// allowed even when a department no longer totals 100% (HR often rebalances
+// in steps); the server's warning is shown, and that department's
+// appraisals can't be finalized until it's back at 100%.
+export default function CriterionDialog({ open, onClose: onCloseProp, criterion, catalog, departments = [] }) {
   const isEdit = Boolean(criterion);
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -69,11 +76,20 @@ export default function CriterionDialog({ open, onClose: onCloseProp, criterion,
       params: { ...(criterion?.params || {}) },
       ratingOptions: criterion?.ratingOptions?.length ? criterion.ratingOptions : DEFAULT_RATINGS,
       bands: criterion?.params?.bands || [],
+      scope: criterion?.departments?.length ? "selected" : "all",
+      departments: (criterion?.departments || []).map(String),
+      // "d_" prefix keeps ObjectId keys from ever being read as array indexes.
+      deptWeights: Object.fromEntries((criterion?.departmentWeightages || []).map((o) => [`d_${o.department}`, o.weightage])),
     });
   }, [open, criterion, reset]);
 
   const type = useWatch({ control, name: "type" });
   const method = useWatch({ control, name: "scoringMethod" });
+  const scope = useWatch({ control, name: "scope" });
+  const selectedDepts = useWatch({ control, name: "departments" });
+  const defaultWeight = useWatch({ control, name: "weightage" });
+  // Departments this criterion applies to — the ones that can get their own weightage.
+  const weightDepts = scope === "selected" ? departments.filter((d) => (selectedDepts || []).includes(String(d._id))) : departments;
   const methods = type === "manual" ? ["rating"] : (catalog?.scoringMethods || []).filter((m) => m !== "rating");
 
   // Keep the method valid for the type: manual is always "rating"; the
@@ -98,12 +114,18 @@ export default function CriterionDialog({ open, onClose: onCloseProp, criterion,
         params: v.type === "manual" ? {} : params,
         ratingOptions: v.type === "manual" ? v.ratingOptions : [],
         isActive: v.isActive,
+        departments: v.scope === "selected" ? v.departments : [],
+        departmentWeightages: Object.entries(v.deptWeights || {})
+          .filter(([, w]) => w !== "" && w !== null && w !== undefined)
+          .map(([k, w]) => ({ department: k.slice(2), weightage: Number(w) })),
       };
       return isEdit ? updateCriterion({ id: criterion._id, ...payload }) : createCriterion(payload);
     },
-    onSuccess: () => {
+    onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ["appraisal-settings"] });
-      toast.success(isEdit ? "Criterion updated" : "Criterion created");
+      queryClient.invalidateQueries({ queryKey: ["appraisals"] });
+      if (res.data?.weightage?.valid === false) toast.info(res.message);
+      else toast.success(isEdit ? "Criterion updated" : "Criterion created");
       onClose();
     },
     onError: (e) => setError(apiError(e)),
@@ -141,12 +163,56 @@ export default function CriterionDialog({ open, onClose: onCloseProp, criterion,
               </option>
             ))}
           </Select>
-          <Input label="Weightage (%)" type="number" step="0.01" error={errors.weightage?.message} {...register("weightage")} />
+          <Input label="Default weightage (%)" type="number" step="0.01" error={errors.weightage?.message} {...register("weightage")} />
           <Select label="Status" {...register("isActive", { setValueAs: (v) => v === true || v === "true" })}>
             <option value="false">Inactive</option>
             <option value="true">Active</option>
           </Select>
         </div>
+
+        <Controller
+          name="departments"
+          control={control}
+          render={({ field }) => (
+            <DepartmentPicker
+              scope={scope}
+              onScopeChange={(s) => setValue("scope", s)}
+              value={field.value || []}
+              onChange={field.onChange}
+              departments={departments}
+              error={errors.departments?.message}
+            />
+          )}
+        />
+
+        {weightDepts.length > 0 && (
+          <fieldset className="space-y-2">
+            <legend className="text-sm font-medium">Weightage by department</legend>
+            <p className="text-xs text-muted">
+              Leave blank to use the default ({defaultWeight || 0}%). Each department needs to total 100% before its appraisals can be finalized.
+            </p>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {weightDepts.map((d) => (
+                <label key={d._id} className="flex items-center justify-between gap-3 rounded-btn border border-border px-3 py-2 text-sm">
+                  <span className="truncate">{d.name}</span>
+                  <span className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      placeholder={String(defaultWeight ?? "")}
+                      aria-label={`${d.name} weightage`}
+                      {...register(`deptWeights.d_${d._id}`)}
+                      className="w-20 rounded-input border border-border bg-surface px-2 py-1 text-right text-sm tabular-nums outline-none focus:border-primary"
+                    />
+                    <span className="text-muted">%</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        )}
 
         {type !== "manual" && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

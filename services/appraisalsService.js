@@ -69,14 +69,17 @@ export const fetchAppraisalSettings = async () => {
   return data.data;
 };
 
+// These three return { message, data: { weightage, ... } } — saving is never
+// blocked by the 100% rule, so the caller shows the server's warning when
+// a department isn't at 100% yet.
 export const createCriterion = async (payload) => {
   const { data } = await axiosInstance.post("/appraisals/criteria", payload);
-  return data.data.criterion;
+  return data;
 };
 
 export const updateCriterion = async ({ id, ...payload }) => {
   const { data } = await axiosInstance.patch(`/appraisals/criteria/${id}`, payload);
-  return data.data.criterion;
+  return data;
 };
 
 export const deleteCriterion = async (id) => {
@@ -85,7 +88,7 @@ export const deleteCriterion = async (id) => {
 
 export const saveAllocation = async (items) => {
   const { data } = await axiosInstance.put("/appraisals/criteria/allocation", { items });
-  return data.data;
+  return data;
 };
 
 export const reorderCriteria = async (ids) => {

@@ -6,8 +6,9 @@ import { BarChart3, Download, Flame, ShieldAlert } from "lucide-react";
 
 import EmptyState from "@/components/ui/EmptyState";
 import Skeleton from "@/components/ui/Skeleton";
-import { Input, Button } from "@/components/ui/Field";
+import { Input, Button, Select } from "@/components/ui/Field";
 import { fetchTeamReport, downloadTeamReportCsv } from "@/services/reportService";
+import { fetchDepartments } from "@/services/orgService";
 import { useAuthStore } from "@/store/authStore";
 
 const pad = (n) => String(n).padStart(2, "0");
@@ -27,10 +28,17 @@ export default function ReportsPage() {
 
   const [from, setFrom] = useState(weekAgo());
   const [to, setTo] = useState(dayStr(new Date()));
+  const [department, setDepartment] = useState("");
+
+  const { data: departments = [] } = useQuery({
+    queryKey: ["departments"],
+    queryFn: fetchDepartments,
+    enabled: isManager,
+  });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["report", from, to],
-    queryFn: () => fetchTeamReport({ from, to }),
+    queryKey: ["report", from, to, department],
+    queryFn: () => fetchTeamReport({ from, to, department }),
     enabled: isManager && Boolean(from && to && from <= to),
   });
 
@@ -49,11 +57,21 @@ export default function ReportsPage() {
   return (
     <div className="mx-auto max-w-[1600px] space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="flex flex-wrap items-end gap-2">
+        <div className="flex flex-wrap items-end gap-3">
           <Input label="From" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
           <Input label="To" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+          <div className="w-52">
+            <Select label="Department" value={department} onChange={(e) => setDepartment(e.target.value)}>
+              <option value="">All Departments</option>
+              {departments.map((d) => (
+                <option key={d._id} value={d._id}>
+                  {d.name}
+                </option>
+              ))}
+            </Select>
+          </div>
         </div>
-        <Button variant="secondary" disabled={!rows.length} onClick={() => downloadTeamReportCsv({ from, to })}>
+        <Button variant="secondary" disabled={!rows.length} onClick={() => downloadTeamReportCsv({ from, to, department })}>
           <Download size={15} /> Export CSV
         </Button>
       </div>
@@ -116,8 +134,8 @@ export default function ReportsPage() {
       )}
 
       <p className="text-xs text-muted">
-        Compliance = submitted follow-ups / (working days × 2). Streak = consecutive weekdays with a
-        submitted morning follow-up. Hours are summed over tasks completed in the range.
+        Compliance = submitted follow-ups / (working days × 2). Streak = consecutive weekdays with a submitted morning
+        follow-up. Hours are summed over tasks completed in the range.
       </p>
     </div>
   );

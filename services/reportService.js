@@ -1,13 +1,13 @@
 import axiosInstance from "./axiosInstance";
 
-export const fetchTeamReport = async ({ from, to }) => {
-  const { data } = await axiosInstance.get("/reports/team", { params: { from, to } });
+export const fetchTeamReport = async ({ from, to, department }) => {
+  const { data } = await axiosInstance.get("/reports/team", { params: { from, to, department: department || undefined } });
   return data.data;
 };
 
-export const downloadTeamReportCsv = async ({ from, to }) => {
+export const downloadTeamReportCsv = async ({ from, to, department }) => {
   const { data } = await axiosInstance.get("/reports/team", {
-    params: { from, to, format: "csv" },
+    params: { from, to, format: "csv", department: department || undefined },
     responseType: "blob",
   });
   const url = URL.createObjectURL(data);

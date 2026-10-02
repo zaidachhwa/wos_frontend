@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/authStore";
 import { fetchDashboardSummary, fetchProjectAnalytics, fetchUserAnalytics } from "@/services/analyticsService";
 import { fetchProjects } from "@/services/projectService";
-import { fetchUsers } from "@/services/orgService";
+import { fetchUsers, fetchDepartments } from "@/services/orgService";
 import { exportToCSV, exportToExcel, exportToPDF } from "@/lib/exportUtils";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from "recharts";
 
@@ -24,6 +24,7 @@ export default function AnalyticsPage() {
   const [customEnd, setCustomEnd] = useState("");
   const [selectedUser, setSelectedUser] = useState("");
   const [selectedProject, setSelectedProject] = useState("");
+  const [selectedDepartment, setSelectedDepartment] = useState("");
   const [minHours, setMinHours] = useState("");
   const [maxHours, setMaxHours] = useState("");
   const [activeTab, setActiveTab] = useState("projects"); // "projects" or "users"
@@ -56,6 +57,7 @@ export default function AnalyticsPage() {
     endDate: endDate || undefined,
     user: selectedUser || undefined,
     project: selectedProject || undefined,
+    department: selectedDepartment || undefined,
     minHours: minHours || undefined,
     maxHours: maxHours || undefined,
     sort,
@@ -93,6 +95,11 @@ export default function AnalyticsPage() {
     queryFn: fetchUsers,
     enabled: canAccess,
   });
+  const { data: allDepartments = [] } = useQuery({
+    queryKey: ["departments"],
+    queryFn: fetchDepartments,
+    enabled: canAccess,
+  });
 
   // Early return AFTER all hooks — safe for Rules of Hooks.
   if (!canAccess) {
@@ -105,6 +112,7 @@ export default function AnalyticsPage() {
     setCustomEnd("");
     setSelectedUser("");
     setSelectedProject("");
+    setSelectedDepartment("");
     setMinHours("");
     setMaxHours("");
     setPage(1);
@@ -183,6 +191,18 @@ export default function AnalyticsPage() {
             >
               <option value="">All Projects</option>
               {allProjects?.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted">Department</label>
+            <select
+              value={selectedDepartment}
+              onChange={(e) => setSelectedDepartment(e.target.value)}
+              className="w-full rounded-input border border-border bg-transparent px-3 py-2 text-sm focus:border-primary focus:outline-none"
+            >
+              <option value="">All Departments</option>
+              {allDepartments?.map(d => <option key={d._id} value={d._id}>{d.name}</option>)}
             </select>
           </div>
 

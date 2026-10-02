@@ -88,12 +88,11 @@ export default function FollowUpsPage() {
               <p className="text-xs text-muted">
                 Submit your morning follow-up by {myDeadline} IST — later than that auto-marks you late for the
                 day, and no submission at all auto-marks you absent.
-                {requireLocation && " Submitting requires being at the office."}
               </p>
             )}
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-              <FollowUpCard type="morning" date={today} followUp={byType("morning")} requireLocation={requireLocation} />
-              <FollowUpCard type="evening" date={today} followUp={byType("evening")} requireLocation={requireLocation} />
+              <FollowUpCard type="morning" date={today} followUp={byType("morning")} />
+              <FollowUpCard type="evening" date={today} followUp={byType("evening")} />
             </div>
             {["submitted", "reviewed"].includes(byType("evening")?.status) && (
               <div className="mt-6 flex justify-end">

@@ -167,21 +167,8 @@ export default function FollowUpCard({ type, date, followUp, requireLocation = f
       return;
     }
 
-    if (!requireLocation) {
-      mutation.mutate({ values, submit: true });
-      return;
-    }
-    setApiError("");
-    setLocating(true);
-    try {
-      const location = await getCurrentLocation();
-      mutation.mutate({ values, submit: true, location });
-    } catch (error) {
-      setApiError(error.message);
-      toast.error(error.message);
-    } finally {
-      setLocating(false);
-    }
+    // Location constraint removed — submit directly without requiring geolocation.
+    mutation.mutate({ values, submit: true });
   });
 
   const saveDraft = handleSubmit((values) => mutation.mutate({ values, submit: false }));
@@ -318,8 +305,8 @@ export default function FollowUpCard({ type, date, followUp, requireLocation = f
             >
               Save draft
             </Button>
-            <Button type="button" disabled={mutation.isPending || locating} onClick={submitWithLocation}>
-              {locating ? "Getting location…" : status === "submitted" ? "Resubmit" : "Submit"}
+            <Button type="button" disabled={mutation.isPending} onClick={submitWithLocation}>
+              {mutation.isPending ? "Submitting…" : status === "submitted" ? "Resubmit" : "Submit"}
             </Button>
           </div>
           {status === "submitted" && (

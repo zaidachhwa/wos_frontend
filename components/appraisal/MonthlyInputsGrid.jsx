@@ -16,13 +16,18 @@ import { STATUS_LABELS, STATUS_TONES, apiError } from "@/lib/appraisal";
 const cellInput =
   "w-20 rounded-input border border-border bg-surface px-2 py-1.5 text-right text-sm tabular-nums outline-none focus:border-primary disabled:opacity-50";
 
+const dateInput =
+  "rounded-input border border-border bg-surface px-2 py-1.5 text-sm outline-none focus:border-primary disabled:opacity-50";
+
+const fmtDate = (d) => (d ? new Date(d).toISOString().slice(0, 10) : "");
+
 // Spreadsheet-style entry of HR's monthly numbers for a whole department —
 // no need to open each employee. Only edited rows are sent.
 export default function MonthlyInputsGrid({ month }) {
   const toast = useToast();
   const queryClient = useQueryClient();
   const [department, setDepartment] = useState("");
-  const [edits, setEdits] = useState({}); // userId -> { leaves, lateMarks }
+  const [edits, setEdits] = useState({}); // userId -> { leaves, lateMarks, scoreFrom, scoreTo }
 
   const { data, isLoading } = useQuery({
     queryKey: ["appraisals", month, { department }],
@@ -43,7 +48,11 @@ export default function MonthlyInputsGrid({ month }) {
     onError: (e) => toast.error(apiError(e)),
   });
 
-  const valueOf = (r, k) => edits[r.user._id]?.[k] ?? (r.hrInputs[k] ?? "");
+  const valueOf = (r, k) => {
+    if (edits[r.user._id]?.[k] !== undefined) return edits[r.user._id][k];
+    if (k === "scoreFrom" || k === "scoreTo") return fmtDate(r.hrInputs[k]) ?? "";
+    return r.hrInputs[k] ?? "";
+  };
   const setValue = (r, k, v) => setEdits((prev) => ({ ...prev, [r.user._id]: { ...prev[r.user._id], [k]: v } }));
   const dirty = Object.keys(edits).length;
 
@@ -76,6 +85,8 @@ export default function MonthlyInputsGrid({ month }) {
                 <th className="px-4 py-3 font-medium">Employee</th>
                 <th className="px-4 py-3 text-right font-medium">Leaves</th>
                 <th className="px-4 py-3 text-right font-medium">Late marks</th>
+                <th className="px-4 py-3 font-medium">Score From</th>
+                <th className="px-4 py-3 font-medium">Score To</th>
                 <th className="px-4 py-3 text-right font-medium">Bugs</th>
                 <th className="px-4 py-3 font-medium">HR evaluation</th>
                 <th className="px-4 py-3 font-medium">Status</th>
@@ -105,6 +116,19 @@ export default function MonthlyInputsGrid({ month }) {
                           value={valueOf(r, k)}
                           onChange={(e) => setValue(r, k, e.target.value)}
                           className={cellInput}
+                        />
+                      </td>
+                    ))}
+                    {["scoreFrom", "scoreTo"].map((k) => (
+                      <td key={k} className="px-4 py-2">
+                        <input
+                          type="date"
+                          aria-label={`${r.user.name} ${k === "scoreFrom" ? "score from" : "score to"}`}
+                          disabled={locked}
+                          value={valueOf(r, k)}
+                          onChange={(e) => setValue(r, k, e.target.value)}
+                          className={dateInput}
+                          title={k === "scoreFrom" ? "Performance score period start date" : "Performance score period end date"}
                         />
                       </td>
                     ))}

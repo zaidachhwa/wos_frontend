@@ -9,12 +9,16 @@ import { STATUS_LABELS, STATUS_TONES, fmtDateTime, fmtScore, monthLabel } from "
 export default function ScoreHeader({ appraisal, showHistoryLink }) {
   const snap = appraisal.status === "finalized" ? appraisal.employeeSnapshot : null;
   const u = appraisal.user || {};
+  const fmtDateOnly = (d) => d ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : null;
+  const scoreFrom = fmtDateOnly(appraisal.hrInputs?.scoreFrom);
+  const scoreTo = fmtDateOnly(appraisal.hrInputs?.scoreTo);
   const fields = [
     ["Employee ID", String(u._id || "").slice(-8).toUpperCase()],
     ["Email", snap?.email || u.email],
     ["Department", snap?.departmentName || u.department?.name || "Unassigned"],
     ["Designation", snap?.designation || u.designation || "—"],
     ["Appraisal month", monthLabel(appraisal.month)],
+    ...(scoreFrom || scoreTo ? [["Score period", `${scoreFrom || "—"} → ${scoreTo || "—"}`]] : []),
     ["Evaluator", appraisal.finalizedBy?.name || appraisal.evaluator?.name || (appraisal.autoFinalized ? "System (auto-finalized)" : "—")],
   ];
 

@@ -298,7 +298,7 @@ export default function TasksPage() {
           open={createOpen}
           onClose={() => setCreateOpen(false)}
           projects={projects}
-          directory={isDirector ? directory.filter((u) => u.role === "hr") : directory}
+          directory={directory}
         />
       )}
     </div>

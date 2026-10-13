@@ -15,6 +15,7 @@ import {
   UserCog,
   PieChart,
   Bug,
+  ListTodo,
 } from "lucide-react";
 
 export const NAV_ITEMS = [
@@ -22,6 +23,7 @@ export const NAV_ITEMS = [
   { href: "/calendar", label: "Calendar", icon: Calendar },
   { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/tasks", label: "Tasks", icon: CheckSquare },
+  { href: "/general", label: "General", icon: ListTodo },
   { href: "/follow-ups", label: "Follow-ups", icon: MessageSquare },
   { href: "/team", label: "Team", icon: Users },
   { href: "/analytics", label: "Analytics", icon: PieChart, roles: ["admin", "manager", "subadmin", "hr", "director"] },

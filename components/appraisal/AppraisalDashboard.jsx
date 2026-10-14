@@ -4,7 +4,7 @@ import { useDeferredValue, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, ClipboardCheck, Lock } from "lucide-react";
+import { AlertTriangle, ClipboardCheck, FileDown, FileSpreadsheet, FileText, Lock } from "lucide-react";
 
 import AppraisalTabs from "@/components/appraisal/AppraisalTabs";
 import AppraisalFilters from "@/components/appraisal/AppraisalFilters";
@@ -17,9 +17,13 @@ import Skeleton from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Field";
 import useToast from "@/hooks/useToast";
 import { useAuthStore } from "@/store/authStore";
-import { fetchAppraisals, finalizeMonth } from "@/services/appraisalsService";
-import { fetchDepartments } from "@/services/orgService";
+import { downloadAppraisalReportCsv, fetchAppraisalReport, fetchAppraisals, finalizeMonth } from "@/services/appraisalsService";
+import { fetchDepartments, fetchTeams } from "@/services/orgService";
+import { exportSectionsToPDF, exportWorkbook } from "@/lib/exportUtils";
 import { HR_ROLES, STATUS_LABELS, STATUS_TONES, apiError, fmtDateTime, fmtScore, monthLabel } from "@/lib/appraisal";
+
+const title = (s) => s.replace(/([A-Z])/g, " $1").replace(/^./, (c) => c.toUpperCase());
+const relabel = (rows) => rows.map((r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [title(k), v])));
 
 export default function AppraisalDashboard({ initialMonth }) {
   const router = useRouter();
@@ -28,6 +32,7 @@ export default function AppraisalDashboard({ initialMonth }) {
   const canManage = HR_ROLES.includes(useAuthStore((s) => s.user?.role));
   const [month, setMonth] = useState(initialMonth);
   const [filters, setFilters] = useState({});
+  const [exportBusy, setExportBusy] = useState(false);
   // Server-side filtering; the search box is deferred so typing stays snappy.
   const deferredFilters = useDeferredValue(filters);
 
@@ -37,6 +42,7 @@ export default function AppraisalDashboard({ initialMonth }) {
     placeholderData: (prev) => prev,
   });
   const { data: departments = [] } = useQuery({ queryKey: ["departments"], queryFn: fetchDepartments });
+  const { data: teams = [] } = useQuery({ queryKey: ["teams"], queryFn: fetchTeams });
 
   const finalizeAll = useMutation({
     mutationFn: () => finalizeMonth({ month }),
@@ -52,6 +58,65 @@ export default function AppraisalDashboard({ initialMonth }) {
   const classifications = data?.classifications || [];
   const monthEnded = data ? new Date() > new Date(data.period.endAt) : false;
   const readyCount = rows.filter((r) => ["ready_for_review", "submitted"].includes(r.status)).length;
+
+  // ---- export helpers ----
+  const scope = [monthLabel(month), departments.find((d) => d._id === filters.department)?.name, teams.find((t) => t._id === filters.team)?.name]
+    .filter(Boolean)
+    .join(" · ");
+
+  const filename = `appraisal-${month}${filters.department ? `-${(departments.find((d) => d._id === filters.department)?.name || "dept").replace(/\s+/g, "-")}` : ""}${filters.team ? `-${(teams.find((t) => t._id === filters.team)?.name || "team").replace(/\s+/g, "-")}` : ""}`;
+
+  const runExport = async (kind) => {
+    setExportBusy(true);
+    try {
+      if (kind === "csv") {
+        await downloadAppraisalReportCsv({ month, ...filters });
+        return;
+      }
+      const r = await fetchAppraisalReport({ month, ...filters });
+      if (!r.summary.length) {
+        toast.info("No appraisals match these filters");
+        return;
+      }
+      // Derive title/filename from the server-confirmed month so the PDF header
+      // always matches the actual data, regardless of any React state race.
+      const rMonth = r.month || month;
+      const rDeptName = departments.find((d) => d._id === filters.department)?.name;
+      const rTeamName = teams.find((t) => t._id === filters.team)?.name;
+      const rScope = [monthLabel(rMonth), rDeptName, rTeamName].filter(Boolean).join(" · ");
+      const rFile = `appraisal-${rMonth}${rDeptName ? `-${rDeptName.replace(/\s+/g, "-")}` : ""}${rTeamName ? `-${rTeamName.replace(/\s+/g, "-")}` : ""}`;
+
+      if (kind === "xlsx") {
+        exportWorkbook(
+          [
+            { name: "Summary", rows: relabel(r.summary) },
+            { name: "Detailed Criteria", rows: relabel(r.criteria) },
+            { name: "Automatic Metrics", rows: relabel(r.automatic) },
+            { name: "HR Metrics", rows: relabel(r.hr) },
+            { name: "Department Summary", rows: relabel(r.departments) },
+          ],
+          `${rFile}.xlsx`
+        );
+      } else {
+        const table = (rows) => ({ headers: Object.keys(rows[0] || {}).map(title), rows: rows.map((x) => Object.values(x)) });
+        exportSectionsToPDF(
+          `Monthly Performance Appraisal Report — ${rScope}`,
+          [
+            { title: "Summary", ...table(r.summary) },
+            { title: "Department Summary", ...table(r.departments) },
+            { title: "Automatic Metrics", ...table(r.automatic) },
+            { title: "HR Metrics", ...table(r.hr) },
+            { title: "Detailed Criteria", ...table(r.criteria) },
+          ],
+          `${rFile}.pdf`
+        );
+      }
+    } catch (e) {
+      toast.error(apiError(e));
+    } finally {
+      setExportBusy(false);
+    }
+  };
 
   return (
     <div className="mx-auto max-w-[1400px] space-y-6">
@@ -96,9 +161,26 @@ export default function AppraisalDashboard({ initialMonth }) {
         filters={filters}
         onChange={setFilters}
         departments={departments}
+        teams={teams}
         designations={designations}
         classifications={classifications}
       />
+
+      {/* Export row */}
+      {canManage && (
+        <div className="flex flex-wrap items-center gap-2 rounded-card border border-border bg-surface px-4 py-3">
+          <span className="mr-1 text-xs font-medium text-muted">Export {scope ? `— ${scope}` : ""}:</span>
+          <Button size="sm" variant="secondary" disabled={exportBusy} onClick={() => runExport("xlsx")}>
+            <FileSpreadsheet size={14} /> Excel (.xlsx)
+          </Button>
+          <Button size="sm" variant="secondary" disabled={exportBusy} onClick={() => runExport("pdf")}>
+            <FileText size={14} /> PDF
+          </Button>
+          <Button size="sm" variant="secondary" disabled={exportBusy} onClick={() => runExport("csv")}>
+            <FileDown size={14} /> CSV
+          </Button>
+        </div>
+      )}
 
       {canManage && monthEnded && readyCount > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-border bg-surface p-4">
@@ -124,6 +206,7 @@ export default function AppraisalDashboard({ initialMonth }) {
               <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
                 <th className="px-4 py-3 font-medium">Employee</th>
                 <th className="px-4 py-3 font-medium">Department</th>
+                <th className="px-4 py-3 font-medium">Team</th>
                 <th className="px-4 py-3 font-medium">Designation</th>
                 <th className="px-4 py-3 text-right font-medium">Score</th>
                 <th className="px-4 py-3 font-medium">Classification</th>
@@ -145,6 +228,7 @@ export default function AppraisalDashboard({ initialMonth }) {
                     <p className="text-xs text-muted">{r.user.email}</p>
                   </td>
                   <td className="px-4 py-3 text-muted">{r.department.name}</td>
+                  <td className="px-4 py-3 text-muted">{r.team?.name || "—"}</td>
                   <td className="px-4 py-3 text-muted">{r.user.designation || "—"}</td>
                   <td className="px-4 py-3 text-right font-semibold tabular-nums">{fmtScore(r.totalScore)}</td>
                   <td className="px-4 py-3">

@@ -5,12 +5,12 @@ import { Search } from "lucide-react";
 import { Input, Select } from "@/components/ui/Field";
 import { STATUS_LABELS } from "@/lib/appraisal";
 
-// Filter bar shared by the dashboard and reports. Department options come
-// from the WOS Department entity — never a hard-coded list.
-export default function AppraisalFilters({ filters, onChange, departments = [], designations = [], classifications = [], showStatus = true }) {
+// Filter bar shared by the dashboard and reports. Department and team options
+// come from the WOS entities — never a hard-coded list.
+export default function AppraisalFilters({ filters, onChange, departments = [], teams = [], designations = [], classifications = [], showStatus = true }) {
   const set = (key) => (e) => onChange({ ...filters, [key]: e.target.value });
   return (
-    <div className="grid grid-cols-2 gap-3 rounded-card border border-border bg-surface p-4 md:grid-cols-4 xl:grid-cols-7">
+    <div className="grid grid-cols-2 gap-3 rounded-card border border-border bg-surface p-4 md:grid-cols-4 xl:grid-cols-8">
       <div className="relative col-span-2 md:col-span-4 xl:col-span-2">
         <Input label="Search employee" placeholder="Name, email or ID" value={filters.search || ""} onChange={set("search")} />
         <Search size={14} className="pointer-events-none absolute right-3 top-[34px] text-muted" />
@@ -23,6 +23,14 @@ export default function AppraisalFilters({ filters, onChange, departments = [], 
           </option>
         ))}
         <option value="unassigned">Unassigned</option>
+      </Select>
+      <Select label="Team" value={filters.team || ""} onChange={set("team")}>
+        <option value="">All teams</option>
+        {teams.map((t) => (
+          <option key={t._id} value={t._id}>
+            {t.name}
+          </option>
+        ))}
       </Select>
       <Select label="Designation" value={filters.designation || ""} onChange={set("designation")}>
         <option value="">All designations</option>

@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/Field";
 import useToast from "@/hooks/useToast";
 import { useAuthStore } from "@/store/authStore";
 import { downloadAppraisalReportCsv, fetchAppraisalReport, fetchAppraisalSettings } from "@/services/appraisalsService";
-import { fetchDepartments, fetchUsers } from "@/services/orgService";
+import { fetchDepartments, fetchTeams, fetchUsers } from "@/services/orgService";
 import { exportSectionsToPDF, exportWorkbook } from "@/lib/exportUtils";
 import { VIEW_ALL_ROLES, apiError, currentIstMonth, monthLabel, shiftMonth } from "@/lib/appraisal";
 
@@ -24,18 +24,19 @@ const relabel = (rows) => rows.map((r) => Object.fromEntries(Object.entries(r).m
 export default function AppraisalReportsPage() {
   const canView = VIEW_ALL_ROLES.includes(useAuthStore((s) => s.user?.role));
   const toast = useToast();
-  const [month, setMonth] = useState(() => shiftMonth(currentIstMonth(), -1));
+  const [month, setMonth] = useState(currentIstMonth);
   const [filters, setFilters] = useState({});
   const [busy, setBusy] = useState(false);
   const { data: departments = [] } = useQuery({ queryKey: ["departments"], queryFn: fetchDepartments, enabled: canView });
+  const { data: teams = [] } = useQuery({ queryKey: ["teams"], queryFn: fetchTeams, enabled: canView });
   const { data: config } = useQuery({ queryKey: ["appraisal-settings"], queryFn: fetchAppraisalSettings, enabled: canView });
   const { data: users = [] } = useQuery({ queryKey: ["users"], queryFn: fetchUsers, enabled: canView });
   const designations = [...new Set(users.map((u) => u.designation).filter(Boolean))].sort();
 
   if (!canView) return <EmptyState icon={ShieldAlert} heading="HR only" description="Appraisal reports are available to HR and administrators." />;
 
-  const scope = [monthLabel(month), departments.find((d) => d._id === filters.department)?.name].filter(Boolean).join(" · ");
-  const filename = `appraisal-report-${month}${filters.department ? `-${(departments.find((d) => d._id === filters.department)?.name || "dept").replace(/\s+/g, "-")}` : ""}`;
+  const scope = [monthLabel(month), departments.find((d) => d._id === filters.department)?.name, teams.find((t) => t._id === filters.team)?.name].filter(Boolean).join(" · ");
+  const filename = `appraisal-report-${month}${filters.department ? `-${(departments.find((d) => d._id === filters.department)?.name || "dept").replace(/\s+/g, "-")}` : ""}${filters.team ? `-${(teams.find((t) => t._id === filters.team)?.name || "team").replace(/\s+/g, "-")}` : ""}`;
 
   const run = async (kind) => {
     setBusy(true);
@@ -49,6 +50,13 @@ export default function AppraisalReportsPage() {
         toast.info("No appraisals match these filters");
         return;
       }
+      // Use the month confirmed by the server so the title always matches the data.
+      const rMonth = r.month || month;
+      const rDeptName = departments.find((d) => d._id === filters.department)?.name;
+      const rTeamName = teams.find((t) => t._id === filters.team)?.name;
+      const rScope = [monthLabel(rMonth), rDeptName, rTeamName].filter(Boolean).join(" · ");
+      const rFile = `appraisal-report-${rMonth}${rDeptName ? `-${rDeptName.replace(/\s+/g, "-")}` : ""}${rTeamName ? `-${rTeamName.replace(/\s+/g, "-")}` : ""}`;
+
       if (kind === "xlsx") {
         exportWorkbook(
           [
@@ -58,12 +66,12 @@ export default function AppraisalReportsPage() {
             { name: "HR Metrics", rows: relabel(r.hr) },
             { name: "Department Summary", rows: relabel(r.departments) },
           ],
-          `${filename}.xlsx`
+          `${rFile}.xlsx`
         );
       } else {
         const table = (rows) => ({ headers: Object.keys(rows[0] || {}).map(title), rows: rows.map((x) => Object.values(x)) });
         exportSectionsToPDF(
-          `Monthly Performance Appraisal Report — ${scope}`,
+          `Monthly Performance Appraisal Report — ${rScope}`,
           [
             { title: "Summary", ...table(r.summary) },
             { title: "Department Summary", ...table(r.departments) },
@@ -71,7 +79,7 @@ export default function AppraisalReportsPage() {
             { title: "HR Metrics", ...table(r.hr) },
             { title: "Detailed Criteria", ...table(r.criteria) },
           ],
-          `${filename}.pdf`
+          `${rFile}.pdf`
         );
       }
     } catch (e) {
@@ -95,6 +103,7 @@ export default function AppraisalReportsPage() {
         filters={filters}
         onChange={setFilters}
         departments={departments}
+        teams={teams}
         designations={designations}
         classifications={config?.settings?.classifications || []}
       />

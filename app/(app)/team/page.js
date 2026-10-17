@@ -7,6 +7,7 @@ import { Users, Search, Plus } from "lucide-react";
 import UserTable from "@/components/team/UserTable";
 import UserDialog from "@/components/team/UserDialog";
 import OrgStructure from "@/components/team/OrgStructure";
+import RoleManagement from "@/components/team/RoleManagement";
 import EmptyState from "@/components/ui/EmptyState";
 import Skeleton from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Field";
@@ -78,6 +79,7 @@ export default function TeamPage() {
             {[
               ["people", "People"],
               ["structure", "Departments & Teams"],
+              ["roles", "Roles"],
             ].map(([key, label]) => (
               <button
                 key={key}
@@ -196,8 +198,10 @@ export default function TeamPage() {
             }
           />
         )
-      ) : (
+      ) : tab === "structure" ? (
         <OrgStructure departments={departments} teams={teams} me={me} />
+      ) : (
+        <RoleManagement departments={departments} me={me} />
       )}
 
       {canManageTeam && (

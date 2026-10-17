@@ -118,6 +118,12 @@ export default function BugDialog({ open, onClose: onCloseProp, bug, severities,
             {apiError}
           </p>
         )}
+        <div className="rounded-input border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-primary">
+          <p className="font-medium">Leaderboard Accountability</p>
+          <p className="text-muted mt-0.5">
+            Logging a bug awards the reporter leaderboard bonus points and deducts penalty points from the employee against whom the bug is logged.
+          </p>
+        </div>
         {isEdit ? (
           <p className="text-sm">
             <span className="text-muted">Employee:</span> {bug.employee?.name} · <span className="text-muted">Reported by</span> {bug.reportedBy?.name} ({bug.reporterRole})

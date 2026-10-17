@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Plus } from "lucide-react";
 
 import Dialog from "@/components/ui/Dialog";
 import { Input, Select, Button } from "@/components/ui/Field";
 import MultiSelect from "@/components/ui/MultiSelect";
-import { createUser, updateUser } from "@/services/orgService";
+import { createUser, updateUser, fetchRoles } from "@/services/orgService";
+import RoleDialog from "@/components/team/RoleDialog";
 
 // Mirrors MANAGEABLE_ROLES in wos_backend/src/controllers/userController.js
 // — which target roles each scoped (non-admin) actor may create/edit.
@@ -73,6 +75,14 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
   const teamPickerItems = teams.map((t) => ({ _id: t._id, name: t.department?.name ? `${t.name} — ${t.department.name}` : t.name }));
   const queryClient = useQueryClient();
   const [apiError, setApiError] = useState("");
+  const [newRoleDialogOpen, setNewRoleDialogOpen] = useState(false);
+
+  const { data: definedRoles = [] } = useQuery({
+    queryKey: ["roles"],
+    queryFn: () => fetchRoles({ isActive: true }),
+    enabled: open,
+  });
+
   const onClose = () => {
     setApiError("");
     onCloseProp();
@@ -84,6 +94,7 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
     reset,
     watch,
     control,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm({ resolver: yupResolver(schema), context: { isEdit } });
 
@@ -150,7 +161,8 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
   const managers = directory.filter((d) => ["admin", "manager", "sublead", "director"].includes(d.role));
 
   return (
-    <Dialog
+    <>
+      <Dialog
       open={open}
       onClose={onClose}
       title={isEdit ? `Edit ${user?.name}` : "Create user"}
@@ -176,14 +188,59 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
         {!isEdit && (
           <Input label="Password" type="password" error={errors.password?.message} {...register("password")} />
         )}
-        <Select label="Role" error={errors.role?.message} {...register("role")}>
+        <Select label="Role (System Permission Tier)" error={errors.role?.message} {...register("role")}>
           {selectableRoles.map((r) => (
             <option key={r} value={r}>
               {ROLE_LABELS[r]}
             </option>
           ))}
         </Select>
-        <Input label="Designation" {...register("designation")} />
+
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium">Designation / Organizational Role</label>
+            {canManageOrgWide && (
+              <button
+                type="button"
+                onClick={() => setNewRoleDialogOpen(true)}
+                className="text-xs text-primary hover:underline flex items-center gap-0.5"
+                title="Create a new role"
+              >
+                <Plus size={12} /> New Role
+              </button>
+            )}
+          </div>
+          <div className="flex flex-col gap-1.5 sm:flex-row">
+            {definedRoles.length > 0 && (
+              <select
+                aria-label="Pick defined role"
+                className="w-full sm:w-1/2 rounded-input border border-border bg-surface px-2.5 py-2 text-xs outline-none transition-colors duration-150 focus:border-primary text-muted hover:text-foreground"
+                value=""
+                onChange={(e) => {
+                  const found = definedRoles.find((r) => r.name === e.target.value);
+                  if (found) {
+                    setValue("designation", found.name);
+                    if (found.baseRole && selectableRoles.includes(found.baseRole)) {
+                      setValue("role", found.baseRole);
+                    }
+                  }
+                }}
+              >
+                <option value="">⚡ Pick Defined Role...</option>
+                {definedRoles.map((r) => (
+                  <option key={r._id} value={r.name}>
+                    {r.name} ({ROLE_LABELS[r.baseRole] || r.baseRole})
+                  </option>
+                ))}
+              </select>
+            )}
+            <input
+              placeholder="e.g. Senior Software Engineer"
+              className="flex-1 rounded-input border border-border bg-surface px-3 py-2 text-sm outline-none transition-colors duration-150 focus:border-primary"
+              {...register("designation")}
+            />
+          </div>
+        </div>
         <Input label="Shift start" type="time" error={errors.shiftStart?.message} {...register("shiftStart")} />
         <Input label="Shift end" type="time" error={errors.shiftEnd?.message} {...register("shiftEnd")} />
         <Input
@@ -286,7 +343,15 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
           </Select>
         )}
       </form>
-
     </Dialog>
+
+    {canManageOrgWide && (
+      <RoleDialog
+        open={newRoleDialogOpen}
+        onClose={() => setNewRoleDialogOpen(false)}
+        departments={departments}
+      />
+    )}
+  </>
   );
 }

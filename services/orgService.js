@@ -71,3 +71,28 @@ export const updateTeamThresholds = async ({ id, ...payload }) => {
 export const deleteTeam = async (id) => {
   await axiosInstance.delete(`/teams/${id}`);
 };
+
+export const fetchRoles = async (params = {}) => {
+  const { data } = await axiosInstance.get("/roles", { params });
+  return data.data.roles;
+};
+
+export const fetchRoleById = async (id) => {
+  const { data } = await axiosInstance.get(`/roles/${id}`);
+  return data.data.role;
+};
+
+export const createRole = async (payload) => {
+  const { data } = await axiosInstance.post("/roles", payload);
+  return data.data.role;
+};
+
+export const updateRole = async ({ id, ...payload }) => {
+  const { data } = await axiosInstance.patch(`/roles/${id}`, payload);
+  return data.data.role;
+};
+
+export const deleteRole = async (id, force = false) => {
+  await axiosInstance.delete(`/roles/${id}`, { params: { force } });
+};
+

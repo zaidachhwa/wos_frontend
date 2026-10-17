@@ -4,10 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { useAuthStore } from "@/store/authStore";
-import { HR_ROLES, VIEW_ALL_ROLES } from "@/lib/appraisal";
+import { HR_ROLES, VIEW_ALL_ROLES, TEAM_LEAD_ROLES } from "@/lib/appraisal";
 
 const TABS = [
-  { href: "/appraisal", label: "Dashboard", roles: VIEW_ALL_ROLES, exact: true },
+  { href: "/appraisal", label: "Dashboard", roles: [...VIEW_ALL_ROLES, ...TEAM_LEAD_ROLES], exact: true },
+  { href: "/appraisal/evaluations", label: "Evaluations", roles: [...VIEW_ALL_ROLES, ...TEAM_LEAD_ROLES] },
   { href: "/appraisal/inputs", label: "Monthly inputs", roles: HR_ROLES },
   { href: "/bugs", label: "Bugs", roles: VIEW_ALL_ROLES },
   { href: "/appraisal/reports", label: "Reports", roles: VIEW_ALL_ROLES },

@@ -4,27 +4,45 @@ import { useEffect, useState } from "react";
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2 } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Plus, Trash2, CheckCircle, AlertTriangle } from "lucide-react";
 
 import DepartmentPicker from "@/components/appraisal/settings/DepartmentPicker";
 import Dialog from "@/components/ui/Dialog";
 import { Button, Input, Select, Textarea } from "@/components/ui/Field";
+import Badge from "@/components/ui/Badge";
 import useToast from "@/hooks/useToast";
-import { createCriterion, updateCriterion } from "@/services/appraisalsService";
+import { createCriterion, updateCriterion, fetchPositions } from "@/services/appraisalsService";
 import { METHOD_LABELS, TYPE_LABELS, apiError } from "@/lib/appraisal";
 
 const num = () => yup.number().transform((v, o) => (o === "" || o === null ? undefined : v));
+
 const schema = yup.object({
   name: yup.string().trim().required("Name is required"),
   description: yup.string(),
+  parentCriterion: yup.string().nullable(),
+  frequency: yup.string().required("Frequency is required"),
+  scoreFromSubCriteria: yup.boolean(),
+  positionsScope: yup.string().oneOf(["all", "selected"]),
+  positions: yup.array(),
   type: yup.string().required(),
   weightage: num().required("Weightage is required").min(0).max(100),
   metric: yup.string().when("type", { is: (t) => t !== "manual", then: (s) => s.required("Choose a data source") }),
   scoringMethod: yup.string().required(),
   isActive: yup.boolean(),
-  params: yup.object({ target: num(), unitPct: num().min(0), freeUnits: num().min(0), floorPct: num().min(0).max(100), noDataPct: num().min(0).max(100) }),
-  ratingOptions: yup.array().of(yup.object({ label: yup.string().trim().required("Label required"), pct: num().required("% required").min(0).max(100) })),
+  params: yup.object({
+    target: num(),
+    unitPct: num().min(0),
+    freeUnits: num().min(0),
+    floorPct: num().min(0).max(100),
+    noDataPct: num().min(0).max(100),
+  }),
+  ratingOptions: yup.array().of(
+    yup.object({
+      label: yup.string().trim().required("Label required"),
+      pct: num().required("% required").min(0).max(100),
+    })
+  ),
   bands: yup.array().of(yup.object({ min: num().required(), max: num(), pct: num().required().min(0).max(100) })),
   scope: yup.string().oneOf(["all", "selected"]),
   departments: yup.array().when("scope", {
@@ -34,24 +52,43 @@ const schema = yup.object({
 });
 
 const DEFAULT_RATINGS = [
-  { label: "Poor", pct: 33.33 },
-  { label: "Average", pct: 66.67 },
-  { label: "Excellent", pct: 100 },
+  { label: "Poor", pct: 25 },
+  { label: "Average", pct: 50 },
+  { label: "Good", pct: 100 },
 ];
 
-// Add/edit a criterion's definition, applicability and weightage. Saving is
-// allowed even when a department no longer totals 100% (HR often rebalances
-// in steps); the server's warning is shown, and that department's
-// appraisals can't be finalized until it's back at 100%.
-export default function CriterionDialog({ open, onClose: onCloseProp, criterion, catalog, departments = [] }) {
+const FREQUENCIES = [
+  ["daily", "Daily (one evaluation per day)"],
+  ["weekly", "Weekly (one evaluation per week)"],
+  ["biweekly", "Biweekly (one evaluation per 2 weeks)"],
+  ["monthly", "Monthly (one evaluation per month)"],
+];
+
+export default function CriterionDialog({
+  open,
+  onClose: onCloseProp,
+  criterion,
+  catalog,
+  departments = [],
+  criteria = [],
+}) {
   const isEdit = Boolean(criterion);
   const toast = useToast();
   const queryClient = useQueryClient();
   const [error, setError] = useState("");
+  const [newPositionInput, setNewPositionInput] = useState("");
+
   const onClose = () => {
     setError("");
     onCloseProp();
   };
+
+  const { data: positionsList = [] } = useQuery({
+    queryKey: ["appraisal-positions"],
+    queryFn: () => fetchPositions(),
+    enabled: open,
+  });
+
   const {
     register,
     handleSubmit,
@@ -60,6 +97,7 @@ export default function CriterionDialog({ open, onClose: onCloseProp, criterion,
     control,
     formState: { errors },
   } = useForm({ resolver: yupResolver(schema) });
+
   const ratings = useFieldArray({ control, name: "ratingOptions" });
   const bands = useFieldArray({ control, name: "bands" });
 
@@ -68,18 +106,24 @@ export default function CriterionDialog({ open, onClose: onCloseProp, criterion,
     reset({
       name: criterion?.name || "",
       description: criterion?.description || "",
+      parentCriterion: criterion?.parentCriterion ? String(criterion.parentCriterion?._id || criterion.parentCriterion) : "",
+      frequency: criterion?.frequency || "monthly",
+      scoreFromSubCriteria: criterion?.scoreFromSubCriteria ?? true,
+      positionsScope: criterion?.positions?.length ? "selected" : "all",
+      positions: criterion?.positions || [],
       type: criterion?.type || "manual",
       weightage: criterion?.weightage ?? 0,
       metric: criterion?.metric || "",
       scoringMethod: criterion?.scoringMethod || "rating",
-      isActive: criterion?.isActive ?? false,
+      isActive: criterion?.isActive ?? true,
       params: { ...(criterion?.params || {}) },
       ratingOptions: criterion?.ratingOptions?.length ? criterion.ratingOptions : DEFAULT_RATINGS,
       bands: criterion?.params?.bands || [],
       scope: criterion?.departments?.length ? "selected" : "all",
       departments: (criterion?.departments || []).map(String),
-      // "d_" prefix keeps ObjectId keys from ever being read as array indexes.
-      deptWeights: Object.fromEntries((criterion?.departmentWeightages || []).map((o) => [`d_${o.department}`, o.weightage])),
+      deptWeights: Object.fromEntries(
+        (criterion?.departmentWeightages || []).map((o) => [`d_${o.department}`, o.weightage])
+      ),
     });
   }, [open, criterion, reset]);
 
@@ -88,16 +132,56 @@ export default function CriterionDialog({ open, onClose: onCloseProp, criterion,
   const scope = useWatch({ control, name: "scope" });
   const selectedDepts = useWatch({ control, name: "departments" });
   const defaultWeight = useWatch({ control, name: "weightage" });
-  // Departments this criterion applies to — the ones that can get their own weightage.
-  const weightDepts = scope === "selected" ? departments.filter((d) => (selectedDepts || []).includes(String(d._id))) : departments;
+  const parentId = useWatch({ control, name: "parentCriterion" });
+  const positionsScope = useWatch({ control, name: "positionsScope" });
+  const selectedPositions = useWatch({ control, name: "positions" }) || [];
+
+  const weightDepts =
+    scope === "selected"
+      ? departments.filter((d) => (selectedDepts || []).includes(String(d._id)))
+      : departments;
   const methods = type === "manual" ? ["rating"] : (catalog?.scoringMethods || []).filter((m) => m !== "rating");
 
-  // Keep the method valid for the type: manual is always "rating"; the
-  // others can't use it.
+  // Top level criteria available to be selected as parent
+  const potentialParents = (criteria || []).filter(
+    (c) => !c.parentCriterion && String(c._id) !== String(criterion?._id)
+  );
+
+  // Live weightage calculations
+  const weightVal = Number(defaultWeight) || 0;
+  const siblings = (criteria || []).filter((c) => {
+    if (String(c._id) === String(criterion?._id)) return false;
+    if (!c.isActive) return false;
+    if (parentId) {
+      return String(c.parentCriterion?._id || c.parentCriterion) === String(parentId);
+    }
+    return !c.parentCriterion;
+  });
+  const siblingsTotal = siblings.reduce((sum, c) => sum + Number(c.weightage || 0), 0);
+  const projectedTotal = Math.round((siblingsTotal + weightVal) * 100) / 100;
+  const remaining = Math.round((100 - projectedTotal) * 100) / 100;
+
   useEffect(() => {
     if (type === "manual" && method !== "rating") setValue("scoringMethod", "rating");
     if (type && type !== "manual" && method === "rating") setValue("scoringMethod", "ratio");
   }, [type, method, setValue]);
+
+  const togglePosition = (pos) => {
+    if (selectedPositions.includes(pos)) {
+      setValue("positions", selectedPositions.filter((p) => p !== pos));
+    } else {
+      setValue("positions", [...selectedPositions, pos]);
+    }
+  };
+
+  const handleAddCustomPosition = (e) => {
+    e.preventDefault();
+    const clean = newPositionInput.trim();
+    if (clean && !selectedPositions.includes(clean)) {
+      setValue("positions", [...selectedPositions, clean]);
+      setNewPositionInput("");
+    }
+  };
 
   const save = useMutation({
     onMutate: () => setError(""),
@@ -107,6 +191,10 @@ export default function CriterionDialog({ open, onClose: onCloseProp, criterion,
       const payload = {
         name: v.name,
         description: v.description,
+        parentCriterion: v.parentCriterion || null,
+        frequency: v.frequency || "monthly",
+        scoreFromSubCriteria: Boolean(v.scoreFromSubCriteria),
+        positions: v.positionsScope === "selected" ? v.positions : [],
         type: v.type,
         weightage: v.weightage,
         metric: v.type === "manual" ? null : v.metric,
@@ -147,49 +235,187 @@ export default function CriterionDialog({ open, onClose: onCloseProp, criterion,
         </>
       }
     >
-      <form className="space-y-4" noValidate>
+      <form className="space-y-5" noValidate>
         {error && (
           <p role="alert" className="rounded-input border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
             {error}
           </p>
         )}
-        <Input label="Name" error={errors.name?.message} {...register("name")} />
-        <Textarea label="Description" rows={2} {...register("description")} />
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Select label="Type" {...register("type")}>
-            {Object.entries(TYPE_LABELS).map(([k, v]) => (
-              <option key={k} value={k}>
-                {v}
-              </option>
-            ))}
-          </Select>
-          <Input label="Default weightage (%)" type="number" step="0.01" error={errors.weightage?.message} {...register("weightage")} />
-          <Select label="Status" {...register("isActive", { setValueAs: (v) => v === true || v === "true" })}>
-            <option value="false">Inactive</option>
-            <option value="true">Active</option>
-          </Select>
+
+        {/* Criterion Structure & Hierarchy */}
+        <div className="rounded-card border border-border/80 bg-background/50 p-4 space-y-4">
+          <p className="text-xs uppercase tracking-wide font-semibold text-muted">1. Structure & Hierarchy</p>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Select label="Criterion hierarchy" {...register("parentCriterion")}>
+              <option value="">Main Criterion (Top-level)</option>
+              {potentialParents.map((p) => (
+                <option key={p._id} value={p._id}>
+                  Sub-criterion of: {p.name}
+                </option>
+              ))}
+            </Select>
+
+            <Select label="Evaluation frequency" error={errors.frequency?.message} {...register("frequency")}>
+              {FREQUENCIES.map(([k, label]) => (
+                <option key={k} value={k}>
+                  {label}
+                </option>
+              ))}
+            </Select>
+          </div>
+
+          {!parentId && (
+            <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+              <input type="checkbox" className="rounded border-border" {...register("scoreFromSubCriteria")} />
+              <span>Calculate main criterion score as weighted average of its sub-criteria</span>
+            </label>
+          )}
         </div>
 
-        <Controller
-          name="departments"
-          control={control}
-          render={({ field }) => (
-            <DepartmentPicker
-              scope={scope}
-              onScopeChange={(s) => setValue("scope", s)}
-              value={field.value || []}
-              onChange={field.onChange}
-              departments={departments}
-              error={errors.departments?.message}
-            />
-          )}
-        />
+        {/* Basic Information */}
+        <div className="space-y-4">
+          <Input label="Name / Title" error={errors.name?.message} {...register("name")} />
+          <Textarea label="Description / Instructions" rows={2} {...register("description")} />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <Select label="Type" {...register("type")}>
+              {Object.entries(TYPE_LABELS).map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v}
+                </option>
+              ))}
+            </Select>
 
+            <div>
+              <Input
+                label="Percentage Weight (%)"
+                type="number"
+                step="0.01"
+                min="0"
+                max="100"
+                error={errors.weightage?.message}
+                {...register("weightage")}
+              />
+            </div>
+
+            <Select label="Status" {...register("isActive", { setValueAs: (v) => v === true || v === "true" })}>
+              <option value="true">Active</option>
+              <option value="false">Inactive</option>
+            </Select>
+          </div>
+
+          {/* Live Weightage Feedback */}
+          <div className="rounded-input border border-border/60 bg-surface/50 p-3 text-xs flex items-center justify-between">
+            <div>
+              <span className="text-muted">
+                {parentId ? "Sub-criteria total under parent:" : "Top-level criteria total:"}
+              </span>{" "}
+              <strong className="text-foreground">{projectedTotal}%</strong>
+            </div>
+            {projectedTotal === 100 ? (
+              <span className="flex items-center gap-1 font-medium text-success">
+                <CheckCircle size={14} /> Exactly 100% (Balanced)
+              </span>
+            ) : remaining > 0 ? (
+              <span className="flex items-center gap-1 font-medium text-warning">
+                <AlertTriangle size={14} /> {remaining}% remaining to reach 100%
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 font-medium text-danger">
+                <AlertTriangle size={14} /> {Math.abs(remaining)}% excess (exceeds 100%)
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Department and Position Assignment */}
+        <div className="rounded-card border border-border/80 bg-background/50 p-4 space-y-4">
+          <p className="text-xs uppercase tracking-wide font-semibold text-muted">2. Department & Position Assignment</p>
+
+          <Controller
+            name="departments"
+            control={control}
+            render={({ field }) => (
+              <DepartmentPicker
+                scope={scope}
+                onScopeChange={(s) => setValue("scope", s)}
+                value={field.value || []}
+                onChange={field.onChange}
+                departments={departments}
+                error={errors.departments?.message}
+              />
+            )}
+          />
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Position / Designation Assignment</label>
+            <div className="flex gap-4 text-sm">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="positionsScope"
+                  value="all"
+                  checked={positionsScope === "all"}
+                  onChange={() => setValue("positionsScope", "all")}
+                />
+                <span>All positions in department</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="positionsScope"
+                  value="selected"
+                  checked={positionsScope === "selected"}
+                  onChange={() => setValue("positionsScope", "selected")}
+                />
+                <span>Specific positions</span>
+              </label>
+            </div>
+
+            {positionsScope === "selected" && (
+              <div className="mt-2 space-y-2 rounded-card border border-border bg-surface p-3">
+                <p className="text-xs text-muted">Select positions that this criterion applies to:</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {[...new Set([...positionsList, ...selectedPositions])].map((pos) => {
+                    const isSelected = selectedPositions.includes(pos);
+                    return (
+                      <button
+                        key={pos}
+                        type="button"
+                        onClick={() => togglePosition(pos)}
+                        className={`rounded-btn px-2.5 py-1 text-xs font-medium transition-colors ${
+                          isSelected
+                            ? "bg-primary text-primary-foreground"
+                            : "border border-border bg-background hover:bg-surface text-muted"
+                        }`}
+                      >
+                        {pos} {isSelected ? "✓" : "+"}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <input
+                    type="text"
+                    value={newPositionInput}
+                    onChange={(e) => setNewPositionInput(e.target.value)}
+                    placeholder="Add custom position..."
+                    className="flex-1 rounded-input border border-border bg-background px-3 py-1 text-xs outline-none focus:border-primary"
+                  />
+                  <Button variant="secondary" size="sm" type="button" onClick={handleAddCustomPosition}>
+                    Add position
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Department Weightage Overrides */}
         {weightDepts.length > 0 && (
           <fieldset className="space-y-2">
-            <legend className="text-sm font-medium">Weightage by department</legend>
+            <legend className="text-sm font-medium">Department weightage overrides</legend>
             <p className="text-xs text-muted">
-              Leave blank to use the default ({defaultWeight || 0}%). Each department needs to total 100% before its appraisals can be finalized.
+              Leave blank to use the default ({defaultWeight || 0}%).
             </p>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {weightDepts.map((d) => (
@@ -214,6 +440,7 @@ export default function CriterionDialog({ open, onClose: onCloseProp, criterion,
           </fieldset>
         )}
 
+        {/* Metric and Scoring Method (for automatic/hybrid) */}
         {type !== "manual" && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Select label="Data source / metric" error={errors.metric?.message} {...register("metric")}>
@@ -234,7 +461,9 @@ export default function CriterionDialog({ open, onClose: onCloseProp, criterion,
           </div>
         )}
 
-        {type !== "manual" && method === "target" && <Input label="Target value (= 100%)" type="number" step="any" {...register("params.target")} />}
+        {type !== "manual" && method === "target" && (
+          <Input label="Target value (= 100%)" type="number" step="any" {...register("params.target")} />
+        )}
         {type !== "manual" && method === "deduction" && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <Input label="% lost per unit" type="number" step="0.01" {...register("params.unitPct")} />
@@ -260,11 +489,20 @@ export default function CriterionDialog({ open, onClose: onCloseProp, criterion,
             </Button>
           </div>
         )}
-        {type !== "manual" && <Input label="Performance % when there's no data (e.g. no tasks)" type="number" step="0.01" {...register("params.noDataPct")} />}
+        {type !== "manual" && (
+          <Input label="Performance % when no data (e.g. no tasks)" type="number" step="0.01" {...register("params.noDataPct")} />
+        )}
 
-        {type === "manual" && (
-          <div className="space-y-2">
-            <p className="text-sm font-medium">Rating options</p>
+        {/* Custom Rating Options for manual criteria if not using standard scale */}
+        {type === "manual" && !parentId && (
+          <div className="space-y-2 rounded-card border border-border/60 bg-surface/30 p-3">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted">Evaluation Rating Scale</p>
+              <Badge value="Poor / Average / Good scale supported" />
+            </div>
+            <p className="text-xs text-muted">
+              Evaluations default to Poor (25%), Average (50%), Good (100%). You can customize rating options below if desired:
+            </p>
             {ratings.fields.map((f, i) => (
               <div key={f.id} className="grid grid-cols-[1fr_120px_auto] items-end gap-2">
                 <Input label="Label" error={errors.ratingOptions?.[i]?.label?.message} {...register(`ratingOptions.${i}.label`)} />
@@ -274,8 +512,8 @@ export default function CriterionDialog({ open, onClose: onCloseProp, criterion,
                 </Button>
               </div>
             ))}
-            <Button variant="secondary" type="button" onClick={() => ratings.append({ label: "", pct: 0 })}>
-              <Plus size={15} /> Add option
+            <Button variant="secondary" type="button" size="sm" onClick={() => ratings.append({ label: "", pct: 0 })}>
+              <Plus size={14} /> Add custom option
             </Button>
           </div>
         )}

@@ -174,6 +174,7 @@ export default function AdminLeaderboardPage() {
             penalties: Object.fromEntries(
               PENALTY_FIELDS.map(([key]) => [key, Number(effective.penalties[key])])
             ),
+            bugReporterBonus: Number(effective.bugReporterBonus ?? 2),
           });
         }}
       >
@@ -215,6 +216,19 @@ export default function AdminLeaderboardPage() {
                 }
               />
             ))}
+            <Input
+              label="Bug Reporter Bonus"
+              type="number"
+              min="0"
+              step="1"
+              value={effective.bugReporterBonus ?? 2}
+              onChange={(e) =>
+                setDraft({
+                  ...effective,
+                  bugReporterBonus: e.target.value,
+                })
+              }
+            />
           </div>
         </section>
 
@@ -225,7 +239,7 @@ export default function AdminLeaderboardPage() {
           </div>
           <p className="mt-1 text-sm text-muted">
             Points deducted for each accountability event. The overdue penalty fires once, live, the moment a
-            task's deadline passes while still open; the bug penalty fires once, the moment a bug is logged.
+            task&apos;s deadline passes while still open; the bug penalty fires once, the moment a bug is logged.
           </p>
           <div className="mt-4 grid grid-cols-3 gap-4">
             {PENALTY_FIELDS.map(([key, label]) => (

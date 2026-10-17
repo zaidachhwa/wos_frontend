@@ -53,6 +53,29 @@ export default function AdminDashboard({ data }) {
         )}
       </WidgetCard>
 
+      <WidgetCard title="General Tasks (Director)" href="/general">
+        {data.generalTasksOverview?.length ? (
+          <ul className="space-y-2">
+            {data.generalTasksOverview.slice(0, 5).map((t) => (
+              <li key={t._id} className="flex items-center justify-between border-b border-border/40 py-1.5 text-sm last:border-b-0">
+                <div className="min-w-0 pr-2">
+                  <p className="truncate font-medium">{t.title}</p>
+                  <p className="text-xs text-muted">
+                    Due {new Date(t.dueAt).toLocaleDateString("en-IN", { month: "short", day: "numeric" })}
+                    {t.createdBy?.name ? ` · by ${t.createdBy.name}` : ""}
+                  </p>
+                </div>
+                <span className="shrink-0 text-xs text-muted">
+                  {t.stats?.completed}/{t.stats?.total} done
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-muted">No general tasks created yet.</p>
+        )}
+      </WidgetCard>
+
       <DailyPlanCard />
 
       <WidgetCard title="Recent activity" className="lg:col-span-3">

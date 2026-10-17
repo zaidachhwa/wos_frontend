@@ -64,6 +64,27 @@ export default function ManagerDashboard({ data }) {
         )}
       </WidgetCard>
 
+      <WidgetCard title="General Tasks (Director)" href="/general">
+        {data.generalTasks?.length ? (
+          <ul className="space-y-2">
+            {data.generalTasks.map((t) => (
+              <li key={t._id} className="flex items-center justify-between border-b border-border/40 py-1.5 text-sm last:border-b-0">
+                <div className="min-w-0 pr-2">
+                  <p className="truncate font-medium">{t.title}</p>
+                  <p className="text-xs text-muted">
+                    Due {new Date(t.dueAt).toLocaleDateString("en-IN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    {t.createdBy?.name ? ` · from ${t.createdBy.name}` : ""}
+                  </p>
+                </div>
+                <Badge value={t.status} />
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-muted">No pending general tasks.</p>
+        )}
+      </WidgetCard>
+
       <WorkloadCard workload={data.workload} />
 
       <DailyPlanCard />

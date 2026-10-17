@@ -146,3 +146,37 @@ export const categorizeClientChange = async ({ taskId, category }) => {
   const { data } = await axiosInstance.patch(`/appraisals/client-changes/${taskId}`, { category });
   return data.data;
 };
+
+// ---- performance evaluations (daily/weekly/biweekly/monthly)
+
+export const fetchPositions = async (department) => {
+  const { data } = await axiosInstance.get("/appraisals/positions", { params: clean({ department }) });
+  return data.data.positions;
+};
+
+export const fetchEvaluatableEmployees = async () => {
+  const { data } = await axiosInstance.get("/appraisals/performance/evaluatable-employees");
+  return data.data.employees;
+};
+
+export const recordPerformanceEvaluation = async (payload) => {
+  const { data } = await axiosInstance.post("/appraisals/performance/evaluations", payload);
+  return data.data.evaluation;
+};
+
+export const fetchPerformanceEvaluations = async (params) => {
+  const { data } = await axiosInstance.get("/appraisals/performance/evaluations", { params: clean(params) });
+  return data.data.evaluations;
+};
+
+export const deletePerformanceEvaluation = async (id) => {
+  const { data } = await axiosInstance.delete(`/appraisals/performance/evaluations/${id}`);
+  return data;
+};
+
+export const fetchMonthlyPerformanceBreakdown = async ({ employeeId, month }) => {
+  const { data } = await axiosInstance.get(`/appraisals/performance/monthly/${employeeId}`, {
+    params: clean({ month }),
+  });
+  return data.data;
+};

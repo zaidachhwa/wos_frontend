@@ -118,14 +118,14 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
         email: user?.email || "",
         password: "",
         role: user?.role || "member",
-        managedDepartment: user?.managedDepartment?._id || "",
+        managedDepartment: user?.managedDepartment?._id || user?.managedDepartment || "",
         managedTeam: user?.managedTeam?._id || user?.managedTeam || "",
         managedTeams: user?.managedTeams?.map((t) => t._id || t) || [],
         designation: user?.designation || "",
         joinedAt: user?.joinedAt ? user.joinedAt.slice(0, 10) : "",
-        department: user?.department?._id || "",
-        team: user?.team?._id || "",
-        reportingManager: user?.reportingManager?._id || "",
+        department: user?.department?._id || user?.department || "",
+        team: user?.team?._id || user?.team || "",
+        reportingManager: user?.reportingManager?._id || user?.reportingManager || "",
         isActive: user ? String(user.isActive) : "true",
         shiftStart: user?.shiftStart || "",
         shiftEnd: user?.shiftEnd || "",
@@ -149,7 +149,7 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
         managedDepartment: values.role === "subadmin" ? values.managedDepartment || null : null,
         managedTeam: values.role === "manager" ? values.managedTeam || null : null,
         managedTeams: values.role === "sublead" ? values.managedTeams || [] : [],
-        isActive: values.isActive === "true",
+        isActive: Boolean(values.isActive === true || values.isActive === "true"),
         shiftStart: values.shiftStart || null,
         shiftEnd: values.shiftEnd || null,
         morningDeadline: values.morningDeadline || null,
@@ -230,9 +230,9 @@ export default function UserDialog({ open, onClose: onCloseProp, user, directory
                 onChange={(e) => {
                   const found = definedRoles.find((r) => r.name === e.target.value);
                   if (found) {
-                    setValue("designation", found.name);
+                    setValue("designation", found.name, { shouldValidate: true, shouldDirty: true });
                     if (found.baseRole && selectableRoles.includes(found.baseRole)) {
-                      setValue("role", found.baseRole);
+                      setValue("role", found.baseRole, { shouldValidate: true, shouldDirty: true });
                     }
                   }
                 }}

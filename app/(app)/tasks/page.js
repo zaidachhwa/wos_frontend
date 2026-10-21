@@ -38,11 +38,11 @@ const bucketOf = (t) => {
   return "Upcoming";
 };
 const BUCKET_ORDER = ["Overdue", "Today", "Upcoming", "No deadline"];
-const TASK_CREATOR_ROLES = ["admin", "hr", "director", "manager", "sublead", "subadmin", "technical_coordinator"];
+const TASK_CREATOR_ROLES = ["admin", "hr", "director", "manager", "sublead", "subadmin", "technical_coordinator", "head_of_technical_operations"];
 
 export default function TasksPage() {
   const me = useAuthStore((s) => s.user);
-  const canBulk = ["admin", "manager", "subadmin", "sublead"].includes(me?.role);
+  const canBulk = ["admin", "manager", "subadmin", "sublead", "head_of_technical_operations"].includes(me?.role);
   const canApprove = ["admin", "manager", "subadmin", "sublead", "hr"].includes(me?.role);
   const isDirector = me?.role === "director";
   const queryClient = useQueryClient();

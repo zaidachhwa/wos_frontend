@@ -19,6 +19,7 @@ const ROLE_OPTIONS = [
   { value: "hr", label: "HR (People, appraisals & attendance)" },
   { value: "director", label: "Director (Executive reports & analytics)" },
   { value: "technical_coordinator", label: "Technical Coordinator (Department availability & free-up alerts)" },
+  { value: "head_of_technical_operations", label: "Head of Technical Operations (Full admin access except others' bonus requests)" },
   { value: "admin", label: "Admin (Full system access)" },
 ];
 

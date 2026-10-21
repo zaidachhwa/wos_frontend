@@ -27,8 +27,9 @@ const preview = (base, director, bonus) => {
 
 export default function DirectorBonusGrid({ month }) {
   const role = useAuthStore((s) => s.user?.role);
-  const canScore = ["director", "admin"].includes(role);
-  const canBonus = ["hr", "director", "admin"].includes(role);
+  const canScore = ["director", "admin", "head_of_technical_operations"].includes(role);
+  const canBonus = ["hr", "director", "admin", "head_of_technical_operations"].includes(role);
+  const canSeeBonusRequests = ["admin", "hr", "director"].includes(role);
   const toast = useToast();
   const queryClient = useQueryClient();
   const [department, setDepartment] = useState("");
@@ -36,7 +37,7 @@ export default function DirectorBonusGrid({ month }) {
 
   const { data, isLoading } = useQuery({ queryKey: ["appraisals", month, { department }], queryFn: () => fetchAppraisals({ month, department }) });
   const { data: departments = [] } = useQuery({ queryKey: ["departments"], queryFn: fetchDepartments });
-  const { data: requestsData } = useQuery({ queryKey: ["bonus-requests", month], queryFn: () => fetchBonusRequests(month) });
+  const { data: requestsData } = useQuery({ queryKey: ["bonus-requests", month], queryFn: () => fetchBonusRequests(month), enabled: canSeeBonusRequests });
   const requestByUser = useMemo(() => new Map((requestsData?.requests || []).map((r) => [String(r.user?._id), r])), [requestsData]);
   const rows = data?.rows || [];
 
@@ -109,7 +110,7 @@ export default function DirectorBonusGrid({ month }) {
                         {r.user.name}
                       </Link>
                       <p className="text-xs text-muted">{r.department.name}</p>
-                      {request && (
+                      {canSeeBonusRequests && request && (
                         <p className="mt-0.5 flex items-center gap-1 text-xs text-info" title={request.reason}>
                           <MessageSquareQuote size={12} /> Requested a bonus
                         </p>

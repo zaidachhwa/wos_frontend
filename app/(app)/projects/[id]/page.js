@@ -58,8 +58,8 @@ export default function ProjectDetailsPage({ params }) {
     enabled: tab === "activity" || tab === "overview",
   });
 
-  const canManage = ["admin", "manager", "subadmin"].includes(me?.role) || project?.manager?._id === me?._id;
-  const canManageModules = ["admin", "manager", "subadmin", "sublead"].includes(me?.role);
+  const canManage = ["admin", "manager", "subadmin", "head_of_technical_operations"].includes(me?.role) || project?.manager?._id === me?._id;
+  const canManageModules = ["admin", "manager", "subadmin", "sublead", "head_of_technical_operations"].includes(me?.role);
 
   const removeProject = useMutation({
     mutationFn: () => deleteProject(id),
@@ -102,7 +102,7 @@ export default function ProjectDetailsPage({ params }) {
                 <Pencil size={15} /> Edit
               </Button>
             )}
-            {me?.role === "admin" && (
+            {(me?.role === "admin" || me?.role === "head_of_technical_operations") && (
               <Button
                 variant="danger"
                 disabled={removeProject.isPending}

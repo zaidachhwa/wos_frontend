@@ -174,12 +174,12 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
   // else's task can be flagged by sublead/manager/subadmin too, on top of QA/admin.
   const hasLeadAssignee = (task?.assignees || []).some((a) => ["manager", "sublead", "subadmin"].includes(a.role));
   const canFlag =
-    me?.role === "admin" || me?.role === "qa"
+    me?.role === "admin" || me?.role === "qa" || me?.role === "head_of_technical_operations"
       ? true
       : ["sublead", "manager", "subadmin"].includes(me?.role) && !hasLeadAssignee;
   // Comment moderation is deliberately narrower than canManage: backend's
   // COMMENT_MODERATOR_ROLES excludes subadmin (no project-scope check there).
-  const canModerateComments = ["admin", "manager", "sublead"].includes(me?.role);
+  const canModerateComments = ["admin", "manager", "sublead", "head_of_technical_operations"].includes(me?.role);
 
   const toggleSubtask = (index) => {
     const subtasks = task.subtasks.map((s, i) => (i === index ? { ...s, done: !s.done } : s));
@@ -524,7 +524,7 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
               {(task.comments || []).map((c) => {
                 const isOwn = c.user?._id === me?._id;
                 const canEdit = isOwn || canModerateComments;
-                const canDelete = isOwn || me?.role === "admin";
+                const canDelete = isOwn || me?.role === "admin" || me?.role === "head_of_technical_operations";
                 const isEditing = editingCommentId === c._id;
                 return (
                   <li key={c._id} className="rounded-card border border-border/60 bg-background/60 px-3 py-2">
@@ -612,7 +612,7 @@ export default function TaskDrawer({ task: taskStub, onClose, directory = [] }) 
             </div>
           </section>
 
-          {me?.role === "admin" && (
+          {(me?.role === "admin" || me?.role === "head_of_technical_operations") && (
             <Button
               variant="danger"
               disabled={remove.isPending}

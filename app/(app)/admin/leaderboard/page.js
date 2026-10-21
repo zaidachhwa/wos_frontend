@@ -119,7 +119,7 @@ function TeamThresholdRow({ team }) {
 
 export default function AdminLeaderboardPage() {
   const me = useAuthStore((s) => s.user);
-  const isAdmin = me?.role === "admin";
+  const isAdmin = me?.role === "admin" || me?.role === "head_of_technical_operations";
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState(null);
   const [feedback, setFeedback] = useState(null);

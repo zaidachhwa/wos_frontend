@@ -10,7 +10,7 @@ import { useAuthStore } from "@/store/authStore";
 
 export default function DepartmentViolationsPage() {
   const me = useAuthStore((s) => s.user);
-  const isAdmin = me?.role === "admin";
+  const isAdmin = me?.role === "admin" || me?.role === "head_of_technical_operations";
 
   const { data: violations = [], isLoading } = useQuery({
     queryKey: ["department-violations"],

@@ -25,7 +25,7 @@ const MANAGEABLE_ROLES = {
 
 export default function TeamPage() {
   const me = useAuthStore((s) => s.user);
-  const isAdmin = me?.role === "admin";
+  const isAdmin = me?.role === "admin" || me?.role === "head_of_technical_operations";
   const isHr = me?.role === "hr";
   const canManageTeam = isAdmin || isHr || Boolean(MANAGEABLE_ROLES[me?.role]);
   const canEditUser = (u) =>

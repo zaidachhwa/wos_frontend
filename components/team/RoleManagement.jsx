@@ -21,21 +21,24 @@ const BASE_ROLE_LABELS = {
   qa: "QA",
   director: "Director",
   technical_coordinator: "Technical Coordinator",
+  head_of_technical_operations: "Head of Technical Operations",
 };
 
 const BASE_ROLE_TONES = {
   admin: "danger",
+  head_of_technical_operations: "danger",
   director: "success",
   hr: "info",
   subadmin: "success",
   manager: "info",
   sublead: "warning",
+  technical_coordinator: "primary",
   qa: "warning",
   member: "muted",
 };
 
 export default function RoleManagement({ departments = [], me }) {
-  const isAdmin = me?.role === "admin";
+  const isAdmin = me?.role === "admin" || me?.role === "head_of_technical_operations";
   const isHr = me?.role === "hr";
   const canManageRoles = isAdmin || isHr;
 

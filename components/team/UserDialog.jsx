@@ -31,6 +31,7 @@ const ROLE_LABELS = {
   qa: "QA",
   director: "Director",
   technical_coordinator: "Technical Coordinator",
+  head_of_technical_operations: "Head of Technical Operations",
 };
 
 const schema = yup.object({
@@ -41,7 +42,7 @@ const schema = yup.object({
     then: (s) => s.min(8, "At least 8 characters").required("Password is required"),
     otherwise: (s) => s.strip(),
   }),
-  role: yup.string().oneOf(["admin", "manager", "subadmin", "sublead", "member", "hr", "qa", "director", "technical_coordinator"]).required(),
+  role: yup.string().oneOf(["admin", "manager", "subadmin", "sublead", "member", "hr", "qa", "director", "technical_coordinator", "head_of_technical_operations"]).required(),
   managedDepartment: yup.string().when("role", {
     is: "subadmin",
     then: (s) => s.required("Managed department is required for this role"),
@@ -59,12 +60,12 @@ const schema = yup.object({
 
 export default function UserDialog({ open, onClose: onCloseProp, user, directory, departments, teams, actor }) {
   const isEdit = Boolean(user);
-  const isAdminActor = actor?.role === "admin";
+  const isAdminActor = actor?.role === "admin" || actor?.role === "head_of_technical_operations";
   const isHrActor = actor?.role === "hr";
   const isSubadminActor = actor?.role === "subadmin";
   const canManageOrgWide = isAdminActor || isHrActor;
   const selectableRoles = isAdminActor
-    ? ["member", "sublead", "manager", "subadmin", "admin", "hr", "qa", "director", "technical_coordinator"]
+    ? ["member", "sublead", "manager", "subadmin", "admin", "hr", "qa", "director", "technical_coordinator", "head_of_technical_operations"]
     : isHrActor
       ? ["member", "sublead", "manager", "qa", "hr", "technical_coordinator"]
       : MANAGEABLE_ROLES[actor?.role] || [];

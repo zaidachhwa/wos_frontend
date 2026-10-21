@@ -65,11 +65,11 @@ export default function OrgStructure({ departments, teams, me }) {
   // Admin and HR add departments/teams org-wide; only admin deletes
   // departments (mirrors orgRoutes). Sub-admins still add/delete teams in
   // their own department.
-  const canManageDepartments = me?.role === "admin" || me?.role === "hr";
-  const canDeleteDepartments = me?.role === "admin";
-  const canDeleteTeams = me?.role === "admin" || me?.role === "subadmin";
+  const canManageDepartments = me?.role === "admin" || me?.role === "hr" || me?.role === "head_of_technical_operations";
+  const canDeleteDepartments = me?.role === "admin" || me?.role === "head_of_technical_operations";
+  const canDeleteTeams = me?.role === "admin" || me?.role === "subadmin" || me?.role === "head_of_technical_operations";
   const managedTeamId = String(me?.managedTeam?._id || me?.managedTeam || "");
-  const canEditThresholds = (t) => me?.role === "admin" || (me?.role === "manager" && String(t._id) === managedTeamId);
+  const canEditThresholds = (t) => me?.role === "admin" || me?.role === "head_of_technical_operations" || (me?.role === "manager" && String(t._id) === managedTeamId);
   const queryClient = useQueryClient();
   const [deptName, setDeptName] = useState("");
   const [teamName, setTeamName] = useState("");

@@ -3,7 +3,7 @@
 import SettingsSection from "@/components/appraisal/settings/SettingsSection";
 import { Input, Select } from "@/components/ui/Field";
 
-const APPRAISABLE_ROLES = ["member", "qa", "sublead", "manager", "subadmin", "technical_coordinator", "director", "hr"];
+const APPRAISABLE_ROLES = ["member", "qa", "sublead", "manager", "subadmin", "technical_coordinator", "director", "hr", "head_of_technical_operations"];
 
 // Month-close behaviour and who gets appraised.
 export default function AutomationCard({ settings }) {

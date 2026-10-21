@@ -26,7 +26,7 @@ export default function DashboardPage() {
             <Skeleton key={i} className="h-48 w-full rounded-card" />
           ))}
         </div>
-      ) : user?.role === "admin" ? (
+      ) : user?.role === "admin" || user?.role === "head_of_technical_operations" ? (
         <AdminDashboard data={data} />
       ) : user?.role === "member" ? (
         <MemberDashboard data={data} />

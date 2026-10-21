@@ -91,7 +91,7 @@ export default function ModuleDialog({ open, onClose: onCloseProp, projectId, mo
       title={isEdit ? `Edit ${module?.name}` : "New module"}
       footer={
         <>
-          {isEdit && me?.role === "admin" && (
+          {isEdit && (me?.role === "admin" || me?.role === "head_of_technical_operations") && (
             <Button
               variant="danger"
               className="mr-auto"

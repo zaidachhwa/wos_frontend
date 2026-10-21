@@ -20,6 +20,7 @@ const BASE_ROLE_LABELS = {
   hr: "HR",
   qa: "QA",
   director: "Director",
+  technical_coordinator: "Technical Coordinator",
 };
 
 const BASE_ROLE_TONES = {

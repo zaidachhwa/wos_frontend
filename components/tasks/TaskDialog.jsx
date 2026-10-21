@@ -63,7 +63,6 @@ const schema = yup.object({
 
 export default function TaskDialog({ open, onClose: onCloseProp, projects, directory, task, lockedProjectId, forceType = "task" }) {
   const me = useAuthStore((s) => s.user);
-  const isMember = me?.role === "member";
   const isDirector = me?.role === "director";
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -138,7 +137,7 @@ export default function TaskDialog({ open, onClose: onCloseProp, projects, direc
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
-      toast.success(isMember ? "Task submitted for approval" : "Task created");
+      toast.success("Task created");
       onClose();
     },
     onError: (error) => {
@@ -225,37 +224,29 @@ export default function TaskDialog({ open, onClose: onCloseProp, projects, direc
         {watch("type") === "bug" && (
           <Input label="Reference (optional)" placeholder="Link or note on what this bug came from" {...register("reference")} />
         )}
-        {isMember ? (
-          <p className="rounded-input border border-warning/30 bg-warning/5 px-3 py-2 text-sm text-warning">
-            This task will be assigned to you and needs approval from your manager before you can start it.
-          </p>
-        ) : (
-          <>
-            <Controller
-              name="assignees"
-              control={control}
-              defaultValue={[]}
-              render={({ field }) => (
-                <MultiSelect label="Assignees" items={directory} value={field.value} onChange={field.onChange} placeholder="Select assignees…" />
-              )}
-            />
-            {Boolean(projectId) && (
-              <Controller
-                name="blockedBy"
-                control={control}
-                defaultValue={[]}
-                render={({ field }) => (
-                  <MultiSelect
-                    label="Blocked by"
-                    items={blockableTasks.map((t) => ({ _id: t._id, name: t.title }))}
-                    value={field.value}
-                    onChange={field.onChange}
-                    placeholder="None"
-                  />
-                )}
+        <Controller
+          name="assignees"
+          control={control}
+          defaultValue={[]}
+          render={({ field }) => (
+            <MultiSelect label="Assignees" items={directory} value={field.value} onChange={field.onChange} placeholder="Select assignees…" />
+          )}
+        />
+        {Boolean(projectId) && (
+          <Controller
+            name="blockedBy"
+            control={control}
+            defaultValue={[]}
+            render={({ field }) => (
+              <MultiSelect
+                label="Blocked by"
+                items={blockableTasks.map((t) => ({ _id: t._id, name: t.title }))}
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="None"
               />
             )}
-          </>
+          />
         )}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           <Select label="Priority" {...register("priority")}>

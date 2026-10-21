@@ -16,6 +16,9 @@ import {
   PieChart,
   Bug,
   ListTodo,
+  CalendarClock,
+  MessageSquareLock,
+  Award,
 } from "lucide-react";
 
 export const NAV_ITEMS = [
@@ -26,6 +29,7 @@ export const NAV_ITEMS = [
   { href: "/general", label: "General", icon: ListTodo },
   { href: "/follow-ups", label: "Follow-ups", icon: MessageSquare },
   { href: "/team", label: "Team", icon: Users },
+  { href: "/availability", label: "Team availability", icon: CalendarClock, roles: ["admin", "manager", "sublead", "technical_coordinator"] },
   { href: "/analytics", label: "Analytics", icon: PieChart, roles: ["admin", "manager", "subadmin", "hr", "director"] },
   { href: "/reports", label: "Reports", icon: BarChart3, roles: ["admin", "manager", "subadmin", "hr", "director"] },
   { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
@@ -34,6 +38,8 @@ export const NAV_ITEMS = [
   { href: "/hr", label: "HR Portal", icon: UserCog, roles: ["admin", "hr"] },
   { href: "/admin/leaderboard", label: "Leaderboard settings", icon: Sliders, roles: ["admin"] },
   { href: "/admin/department-violations", label: "Department violations", icon: AlertTriangle, roles: ["admin"] },
+  { href: "/feedback", label: "Anonymous feedback", icon: MessageSquareLock },
+  { href: "/bonus-requests", label: "Bonus request", icon: Award },
   { href: "/notifications", label: "Notifications", icon: Bell },
   { href: "/settings", label: "Settings", icon: Settings },
 ];

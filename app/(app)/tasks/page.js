@@ -38,10 +38,10 @@ const bucketOf = (t) => {
   return "Upcoming";
 };
 const BUCKET_ORDER = ["Overdue", "Today", "Upcoming", "No deadline"];
+const TASK_CREATOR_ROLES = ["admin", "hr", "director", "manager", "sublead", "subadmin", "technical_coordinator"];
 
 export default function TasksPage() {
   const me = useAuthStore((s) => s.user);
-  const canCreate = ["admin", "manager", "subadmin", "sublead", "member", "director", "hr"].includes(me?.role);
   const canBulk = ["admin", "manager", "subadmin", "sublead"].includes(me?.role);
   const canApprove = ["admin", "manager", "subadmin", "sublead", "hr"].includes(me?.role);
   const isDirector = me?.role === "director";
@@ -77,6 +77,11 @@ export default function TasksPage() {
   });
   const { data: projects = [] } = useQuery({ queryKey: ["projects"], queryFn: fetchProjects });
   const { data: directory = [] } = useQuery({ queryKey: ["directory"], queryFn: fetchDirectory });
+  // Mirrors the server rule (taskController TASK_CREATOR_ROLES): leads, HR,
+  // director, admin, technical coordinators — or anyone who manages a project.
+  // Team members can't create tasks.
+  const managedProjects = projects.filter((p) => String(p.manager?._id || p.manager) === String(me?._id));
+  const canCreate = TASK_CREATOR_ROLES.includes(me?.role) || managedProjects.length > 0;
 
   const groups = (tasks || [])
     .reduce((acc, t) => {
@@ -297,7 +302,8 @@ export default function TasksPage() {
         <TaskDialog
           open={createOpen}
           onClose={() => setCreateOpen(false)}
-          projects={projects}
+          // Project Managers without a lead role may only add tasks to projects they manage.
+          projects={TASK_CREATOR_ROLES.includes(me?.role) ? projects : managedProjects}
           directory={directory}
         />
       )}

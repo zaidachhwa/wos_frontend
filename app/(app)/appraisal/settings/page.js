@@ -19,7 +19,7 @@ import { HR_ROLES } from "@/lib/appraisal";
 const TABS = [
   ["criteria", "Criteria"],
   ["bugs", "Bug penalties"],
-  ["classification", "Performance classification"],
+  ["classification", "Rating & increment"],
   ["client", "Client changes"],
   ["automation", "Automation"],
 ];

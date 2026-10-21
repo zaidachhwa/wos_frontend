@@ -9,6 +9,7 @@ import { AlertTriangle, ClipboardCheck, FileDown, FileSpreadsheet, FileText, Loc
 import AppraisalTabs from "@/components/appraisal/AppraisalTabs";
 import AppraisalFilters from "@/components/appraisal/AppraisalFilters";
 import ClassificationBadge from "@/components/appraisal/ClassificationBadge";
+import IncrementBadge from "@/components/appraisal/IncrementBadge";
 import MonthPicker from "@/components/appraisal/MonthPicker";
 import StatTile from "@/components/appraisal/StatTile";
 import Badge from "@/components/ui/Badge";
@@ -209,7 +210,8 @@ export default function AppraisalDashboard({ initialMonth }) {
                 <th className="px-4 py-3 font-medium">Team</th>
                 <th className="px-4 py-3 font-medium">Designation</th>
                 <th className="px-4 py-3 text-right font-medium">Score</th>
-                <th className="px-4 py-3 font-medium">Classification</th>
+                <th className="px-4 py-3 font-medium">Rating</th>
+                <th className="px-4 py-3 text-right font-medium">Increment</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">Missing</th>
               </tr>
@@ -233,6 +235,10 @@ export default function AppraisalDashboard({ initialMonth }) {
                   <td className="px-4 py-3 text-right font-semibold tabular-nums">{fmtScore(r.totalScore)}</td>
                   <td className="px-4 py-3">
                     <ClassificationBadge classification={r.classification} />
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <IncrementBadge increment={r.increment} showGroup={false} />
+                    {r.increment && <p className="text-xs text-muted">{r.increment.group === "leader" ? "Team leader" : "Employee"}</p>}
                   </td>
                   <td className="px-4 py-3">
                     <Badge value={STATUS_LABELS[r.status]} tone={STATUS_TONES[r.status]} />

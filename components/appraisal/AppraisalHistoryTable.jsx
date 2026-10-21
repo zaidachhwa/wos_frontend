@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 
 import ClassificationBadge from "@/components/appraisal/ClassificationBadge";
+import IncrementBadge from "@/components/appraisal/IncrementBadge";
 import Badge from "@/components/ui/Badge";
 import { STATUS_LABELS, STATUS_TONES, fmtScore, monthLabel } from "@/lib/appraisal";
 
@@ -18,7 +19,8 @@ export default function AppraisalHistoryTable({ history, showStatus = false }) {
           <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
             <th className="px-4 py-3 font-medium">Month</th>
             <th className="px-4 py-3 text-right font-medium">Score</th>
-            <th className="px-4 py-3 font-medium">Classification</th>
+            <th className="px-4 py-3 font-medium">Rating</th>
+            <th className="px-4 py-3 text-right font-medium">Increment</th>
             {showStatus && <th className="px-4 py-3 font-medium">Status</th>}
             <th className="px-4 py-3" />
           </tr>
@@ -30,6 +32,9 @@ export default function AppraisalHistoryTable({ history, showStatus = false }) {
               <td className="px-4 py-3 text-right font-semibold tabular-nums">{fmtScore(h.totalScore)} / 100</td>
               <td className="px-4 py-3">
                 <ClassificationBadge classification={h.classification} />
+              </td>
+              <td className="px-4 py-3 text-right">
+                <IncrementBadge increment={h.increment} showGroup={false} />
               </td>
               {showStatus && (
                 <td className="px-4 py-3">

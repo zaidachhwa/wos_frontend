@@ -54,7 +54,7 @@ export default function UserTable({ users, canEdit, onEdit, onDelete }) {
                       <Pencil size={16} />
                     </button>
                   )}
-                  {canEdit(u) && u.isActive && (
+                  {canEdit(u) && (
                     <button
                       onClick={() => onDelete(u)}
                       aria-label={`Delete ${u.name}`}

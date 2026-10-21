@@ -23,3 +23,9 @@ export const fetchCalendar = async ({ from, to, user }) => {
   const { data } = await axiosInstance.get("/calendar", { params: { from, to, user: user || undefined } });
   return data.data.items;
 };
+
+// People whose calendar (and task dates) I'm allowed to view.
+export const fetchCalendarPeople = async () => {
+  const { data } = await axiosInstance.get("/calendar/people");
+  return data.data.users;
+};

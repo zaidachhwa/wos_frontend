@@ -52,6 +52,14 @@ export const submitAppraisal = (id) => appraisalAction("post", `/appraisals/${id
 export const finalizeAppraisal = (id) => appraisalAction("post", `/appraisals/${id}/finalize`);
 export const reopenAppraisal = ({ id, reason }) => appraisalAction("post", `/appraisals/${id}/reopen`, { reason });
 
+// Director's 0–20 assessment and Special Bonus % (role-gated on the server).
+export const saveDirectorAssessment = ({ id, ...body }) => appraisalAction("patch", `/appraisals/${id}/director-assessment`, body);
+export const saveSpecialBonus = ({ id, ...body }) => appraisalAction("patch", `/appraisals/${id}/special-bonus`, body);
+export const saveDirectorInputs = async ({ month, rows }) => {
+  const { data } = await axiosInstance.patch("/appraisals/director-inputs", { month, rows });
+  return data;
+};
+
 export const finalizeMonth = async ({ month, ids }) => {
   const { data } = await axiosInstance.post("/appraisals/finalize-month", { month, ids });
   return data;

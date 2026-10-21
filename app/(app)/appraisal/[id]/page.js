@@ -7,6 +7,7 @@ import { AlertTriangle, ChevronLeft, ShieldAlert } from "lucide-react";
 
 import CriterionLine from "@/components/appraisal/CriterionLine";
 import HrInputsCard from "@/components/appraisal/HrInputsCard";
+import ScoreComposition from "@/components/appraisal/ScoreComposition";
 import MetricsPanels from "@/components/appraisal/MetricsPanels";
 import ScoreHeader from "@/components/appraisal/ScoreHeader";
 import WorkflowActions from "@/components/appraisal/WorkflowActions";
@@ -147,6 +148,7 @@ export default function AppraisalDetailPage({ params }) {
         </div>
 
         <aside className="space-y-6">
+          <ScoreComposition key={`${a.directorAssessment?.updatedAt}-${a.specialBonus?.updatedAt}`} appraisal={a} queryKey={key} />
           {canManage && <HrInputsCard key={a.hrInputs?.updatedAt || "new"} appraisal={a} editable={editable} saving={inputs.isPending} onSave={(b) => inputs.mutateAsync(b).catch(() => {})} />}
           {a.improvementAreas?.length > 0 && (
             <section className="rounded-card border border-border bg-surface p-5">

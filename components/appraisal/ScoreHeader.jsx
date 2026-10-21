@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import ClassificationBadge from "@/components/appraisal/ClassificationBadge";
+import IncrementBadge from "@/components/appraisal/IncrementBadge";
 import Badge from "@/components/ui/Badge";
 import { STATUS_LABELS, STATUS_TONES, fmtDateTime, fmtScore, monthLabel } from "@/lib/appraisal";
 
@@ -52,6 +53,14 @@ export default function ScoreHeader({ appraisal, showHistoryLink }) {
         <div className="mt-3">
           <ClassificationBadge classification={appraisal.classification} />
         </div>
+        {appraisal.increment?.pct !== null && appraisal.increment?.pct !== undefined && (
+          <div className="mt-3 border-t border-border pt-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted">Increment</p>
+            <p className="mt-1 text-sm">
+              <IncrementBadge increment={appraisal.increment} />
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

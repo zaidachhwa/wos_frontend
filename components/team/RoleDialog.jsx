@@ -18,6 +18,7 @@ const ROLE_OPTIONS = [
   { value: "qa", label: "QA (Quality testing & bug verification)" },
   { value: "hr", label: "HR (People, appraisals & attendance)" },
   { value: "director", label: "Director (Executive reports & analytics)" },
+  { value: "technical_coordinator", label: "Technical Coordinator (Department availability & free-up alerts)" },
   { value: "admin", label: "Admin (Full system access)" },
 ];
 

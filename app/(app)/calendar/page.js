@@ -11,9 +11,8 @@ import interactionPlugin from "@fullcalendar/interaction";
 import { Plus, Check } from "lucide-react";
 
 import TimeBlockDialog from "@/components/calendar/TimeBlockDialog";
-import { useAuthStore } from "@/store/authStore";
 import { Button } from "@/components/ui/Field";
-import { fetchCalendar, fetchTimeBlocks } from "@/services/timeblockService";
+import { fetchCalendar, fetchCalendarPeople, fetchTimeBlocks } from "@/services/timeblockService";
 import { fetchProjects } from "@/services/projectService";
 import { fetchDirectory } from "@/services/orgService";
 import { combineDeadlineAndTime } from "@/lib/taskDates";
@@ -60,8 +59,6 @@ const renderEventContent = (arg) => {
 
 export default function CalendarPage() {
   const router = useRouter();
-  const me = useAuthStore((s) => s.user);
-  const canViewOthers = ["admin", "manager", "subadmin"].includes(me?.role);
   const [viewUser, setViewUser] = useState("");
   const [range, setRange] = useState(null);
   const [dialog, setDialog] = useState({ open: false, block: null, defaultDate: null });
@@ -78,6 +75,11 @@ export default function CalendarPage() {
   });
   const { data: projects = [] } = useQuery({ queryKey: ["projects"], queryFn: fetchProjects });
   const { data: directory = [] } = useQuery({ queryKey: ["directory"], queryFn: fetchDirectory });
+  // Whose calendars I may view (task dates included) — decided by the server:
+  // org-wide for admin/HR/director, own people for leads, coordinators and
+  // project managers. Empty = only my own.
+  const { data: viewable = [] } = useQuery({ queryKey: ["calendar-people"], queryFn: fetchCalendarPeople });
+  const canViewOthers = viewable.length > 0;
 
   const localDay = (d) => {
     const x = new Date(d);
@@ -155,13 +157,11 @@ export default function CalendarPage() {
             className="rounded-input border border-border bg-surface px-3 py-2 text-sm outline-none transition-colors duration-150 focus:border-primary"
           >
             <option value="">My calendar</option>
-            {directory
-              .filter((d) => d._id !== me?._id)
-              .map((d) => (
-                <option key={d._id} value={d._id}>
-                  {d.name} ({d.role})
-                </option>
-              ))}
+            {viewable.map((d) => (
+              <option key={d._id} value={d._id}>
+                {d.name} ({d.designation || d.role})
+              </option>
+            ))}
           </select>
         ) : (
           <span />

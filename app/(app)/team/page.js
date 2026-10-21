@@ -172,7 +172,7 @@ export default function TeamPage() {
               setDialogOpen(true);
             }}
             onDelete={(u) => {
-              if (window.confirm(`Delete ${u.name}? They'll be deactivated and lose access to WorkOS.`)) {
+              if (window.confirm(`Permanently delete ${u.name}? This action cannot be undone.`)) {
                 removeUser.mutate(u._id);
               }
             }}

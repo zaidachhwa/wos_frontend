@@ -13,8 +13,8 @@ const TONES = ["danger", "warning", "success", "info", "muted"];
 export default function ClassificationsCard({ settings }) {
   return (
     <SettingsSection
-      title="Performance classification"
-      description="Score ranges and labels. Scores are rounded to the configured precision before matching a range."
+      title="Rating & increment"
+      description="Score ranges, ratings and the salary increment each earns. Team leader rate applies to Admin, HR, Directors, Team Leads, Sub Leads, Technical Coordinators and anyone managing a project; everyone else gets the employee rate. Scores are rounded to the configured precision before matching a range."
       initial={{
         classifications: settings.classifications,
         classificationDecimals: settings.classificationDecimals,
@@ -28,10 +28,28 @@ export default function ClassificationsCard({ settings }) {
           <div className="space-y-4">
             {v.classifications.map((c, i) => (
               <div key={i} className="space-y-3 rounded-btn border border-border p-4">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_90px_90px_120px_auto]">
-                  <Input label="Label" value={c.label} onChange={(e) => update(i, { label: e.target.value })} />
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-[1fr_80px_80px_110px_110px_110px_auto]">
+                  <Input label="Rating" value={c.label} onChange={(e) => update(i, { label: e.target.value })} />
                   <Input label="From" type="number" value={c.min} onChange={(e) => update(i, { min: e.target.value })} />
                   <Input label="To" type="number" value={c.max} onChange={(e) => update(i, { max: e.target.value })} />
+                  <Input
+                    label="Employee %"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.5"
+                    value={c.employeeIncrementPct ?? 0}
+                    onChange={(e) => update(i, { employeeIncrementPct: e.target.value })}
+                  />
+                  <Input
+                    label="Team leader %"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.5"
+                    value={c.leaderIncrementPct ?? 0}
+                    onChange={(e) => update(i, { leaderIncrementPct: e.target.value })}
+                  />
                   <Select label="Colour" value={c.tone} onChange={(e) => update(i, { tone: e.target.value })}>
                     {TONES.map((t) => (
                       <option key={t} value={t}>
@@ -59,7 +77,7 @@ export default function ClassificationsCard({ settings }) {
             ))}
             <Button
               variant="secondary"
-              onClick={() => set({ ...v, classifications: [...v.classifications, { key: "", label: "", min: 0, max: 0, tone: "muted", emailMessage: "", showImprovementAreas: false }] })}
+              onClick={() => set({ ...v, classifications: [...v.classifications, { key: "", label: "", min: 0, max: 0, tone: "muted", emailMessage: "", showImprovementAreas: false, employeeIncrementPct: 0, leaderIncrementPct: 0 }] })}
             >
               <Plus size={15} /> Add classification
             </Button>

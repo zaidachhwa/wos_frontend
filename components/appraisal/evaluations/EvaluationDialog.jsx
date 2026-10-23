@@ -15,7 +15,7 @@ import {
   fetchAppraisalSettings,
   recordPerformanceEvaluation,
 } from "@/services/appraisalsService";
-import { apiError, positionLabel } from "@/lib/appraisal";
+import { apiError, criterionAppliesTo, positionLabel } from "@/lib/appraisal";
 import { getPeriodBounds } from "@/lib/appraisalPeriod";
 
 const today = () => new Date(Date.now() + 5.5 * 3600 * 1000).toISOString().slice(0, 10);
@@ -28,7 +28,7 @@ const schema = yup.object({
   comment: yup.string().max(2000),
 });
 
-export default function EvaluationDialog({ open, onClose: onCloseProp, initialEmployeeId, initialCriterionId }) {
+export default function EvaluationDialog({ open, onClose: onCloseProp, initialEmployeeId, initialCriterionId, initialDate }) {
   const toast = useToast();
   const queryClient = useQueryClient();
   const [error, setError] = useState("");
@@ -75,12 +75,12 @@ export default function EvaluationDialog({ open, onClose: onCloseProp, initialEm
       reset({
         employeeId: initialEmployeeId || "",
         criterionId: initialCriterionId || "",
-        date: today(),
+        date: initialDate || today(),
         rating: "good",
         comment: "",
       });
     }
-  }, [open, initialEmployeeId, initialCriterionId, reset]);
+  }, [open, initialEmployeeId, initialCriterionId, initialDate, reset]);
 
   const selectedEmployeeId = useWatch({ control, name: "employeeId" });
   const selectedCriterionId = useWatch({ control, name: "criterionId" });
@@ -89,20 +89,8 @@ export default function EvaluationDialog({ open, onClose: onCloseProp, initialEm
 
   const selectedEmployee = employees.find((e) => String(e._id) === String(selectedEmployeeId));
 
-  // Filter criteria applicable to employee's department and position
-  const applicableCriteria = allCriteria.filter((c) => {
-    if (!c.isActive) return false;
-    if (c.departments?.length && selectedEmployee?.department) {
-      const deptId = String(selectedEmployee.department._id || selectedEmployee.department);
-      if (!c.departments.map(String).includes(deptId)) return false;
-    }
-    if (c.positions?.length && selectedEmployee) {
-      // Same rule as the backend: base role, or designation for older criteria.
-      const mine = [selectedEmployee.role, selectedEmployee.designation].filter(Boolean).map((p) => p.trim().toLowerCase());
-      if (!c.positions.some((p) => mine.includes(p.trim().toLowerCase()))) return false;
-    }
-    return true;
-  });
+  // Only the criteria assigned to this employee's department, team and position
+  const applicableCriteria = allCriteria.filter((c) => c.isActive && criterionAppliesTo(c, selectedEmployee));
 
   const currentCriterion = allCriteria.find((c) => String(c._id) === String(selectedCriterionId));
   const currentPeriod = currentCriterion ? getPeriodBounds(currentCriterion.frequency || "monthly", selectedDate) : null;
@@ -170,6 +158,7 @@ export default function EvaluationDialog({ open, onClose: onCloseProp, initialEm
             <div>
               <span className="text-muted">Target Assignment:</span>{" "}
               <strong>{selectedEmployee.department?.name || "No Department"}</strong> ·{" "}
+              <strong>{selectedEmployee.team?.name || "No Team"}</strong> ·{" "}
               <span className="text-primary font-medium">{positionLabel(selectedEmployee.role)}
                 {selectedEmployee.designation ? ` (${selectedEmployee.designation})` : ""}
               </span>
@@ -201,13 +190,10 @@ export default function EvaluationDialog({ open, onClose: onCloseProp, initialEm
           )}
           {currentPeriod && (
             <p className="mt-1 text-xs text-muted">
-              Evaluation period (IST):{" "}
-              <strong className="text-foreground">
-                {currentPeriod.startDate === currentPeriod.endDate
-                  ? currentPeriod.startDate
-                  : `${currentPeriod.startDate} to ${currentPeriod.endDate}`}
-              </strong>{" "}
-              · counts towards {currentPeriod.month}
+              Marking for (IST): <strong className="text-foreground">{currentPeriod.label}</strong> · counts towards{" "}
+              {currentPeriod.frequency === "monthly"
+                ? `${currentPeriod.month} (monthly score = average of the weekly marks)`
+                : currentPeriod.month}
             </p>
           )}
         </div>

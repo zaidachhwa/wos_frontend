@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 
 import MonthPicker from "@/components/appraisal/MonthPicker";
+import PeriodMarks from "@/components/appraisal/evaluations/PeriodMarks";
 import Badge from "@/components/ui/Badge";
 import { Button, Select } from "@/components/ui/Field";
 import EmptyState from "@/components/ui/EmptyState";
@@ -26,7 +27,7 @@ import {
   fetchEvaluatableEmployees,
   fetchMonthlyPerformanceBreakdown,
 } from "@/services/appraisalsService";
-import { currentIstMonth, fmtScore, monthLabel } from "@/lib/appraisal";
+import { currentIstMonth, fmtScore, monthLabel, positionLabel } from "@/lib/appraisal";
 
 const FREQ_COLORS = {
   daily: "bg-blue-500/10 text-blue-500 border-blue-500/20",
@@ -91,7 +92,7 @@ export default function MonthlyPerformanceView({
               <option value="">Select employee...</option>
               {employees.map((emp) => (
                 <option key={emp._id} value={emp._id}>
-                  {emp.name} {emp.designation ? `(${emp.designation})` : ""} {emp.department?.name ? `· ${emp.department.name}` : ""}
+                  {emp.name} ({positionLabel(emp.role)}) {emp.department?.name ? `· ${emp.department.name}` : ""} {emp.team?.name ? `· ${emp.team.name}` : ""}
                 </option>
               ))}
             </Select>
@@ -201,7 +202,9 @@ export default function MonthlyPerformanceView({
                 )}
               </div>
               <p className="mt-2 text-xs text-muted">
-                Target criteria for {selectedEmployee?.designation || "employee role"}
+                Criteria assigned to {positionLabel(breakdown.employee?.role || selectedEmployee?.role)}
+                {breakdown.employee?.department?.name ? ` · ${breakdown.employee.department.name}` : ""}
+                {breakdown.employee?.team?.name ? ` · ${breakdown.employee.team.name}` : ""}
               </p>
             </div>
 
@@ -410,6 +413,16 @@ export default function MonthlyPerformanceView({
                         )}
                       </div>
 
+                      {/* Per-period marks (e.g. each week of the month) */}
+                      {!hasSubs && criterion.periods?.length > 0 && (
+                        <div className="px-4 py-3 border-t border-border/40">
+                          <PeriodMarks
+                            criterion={criterion}
+                            onMark={onRecordEvaluation ? (date) => onRecordEvaluation(activeEmployeeId, criterion._id, date) : undefined}
+                          />
+                        </div>
+                      )}
+
                       {/* Ratings Pill Summary for Standalone Criterion */}
                       {!hasSubs && criterion.ratingsCount && (
                         <div className="px-4 py-2.5 border-t border-border/40 flex flex-wrap items-center gap-4 text-xs">
@@ -556,6 +569,12 @@ export default function MonthlyPerformanceView({
                                     </button>
                                   )}
                                 </div>
+
+                                <PeriodMarks
+                                  compact
+                                  criterion={sub}
+                                  onMark={onRecordEvaluation ? (date) => onRecordEvaluation(activeEmployeeId, sub._id, date) : undefined}
+                                />
 
                                 {/* Evaluation entries popup/list */}
                                 {selectedEvaluationDetail?._id === sub._id && sub.evaluations?.length > 0 && (

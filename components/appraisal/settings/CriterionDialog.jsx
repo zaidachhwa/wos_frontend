@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2, CheckCircle, AlertTriangle } from "lucide-react";
 
 import DepartmentPicker from "@/components/appraisal/settings/DepartmentPicker";
@@ -13,6 +13,7 @@ import { Button, Input, Select, Textarea } from "@/components/ui/Field";
 import Badge from "@/components/ui/Badge";
 import useToast from "@/hooks/useToast";
 import { createCriterion, updateCriterion } from "@/services/appraisalsService";
+import { fetchTeams } from "@/services/orgService";
 import { METHOD_LABELS, POSITION_LABELS, TYPE_LABELS, apiError } from "@/lib/appraisal";
 
 const num = () => yup.number().transform((v, o) => (o === "" || o === null ? undefined : v));
@@ -25,6 +26,11 @@ const schema = yup.object({
   scoreFromSubCriteria: yup.boolean(),
   positionsScope: yup.string().oneOf(["all", "selected"]),
   positions: yup.array(),
+  teamsScope: yup.string().oneOf(["all", "selected"]),
+  teams: yup.array().when("teamsScope", {
+    is: "selected",
+    then: (s) => s.min(1, "Tick at least one team, or choose All teams"),
+  }),
   type: yup.string().required(),
   weightage: num().required("Weightage is required").min(0).max(100),
   metric: yup.string().when("type", { is: (t) => t !== "manual", then: (s) => s.required("Choose a data source") }),
@@ -105,6 +111,8 @@ export default function CriterionDialog({
       positionsScope: criterion?.positions?.length ? "selected" : "all",
       // Only base roles are valid positions; older free-text designations are dropped.
       positions: (criterion?.positions || []).filter((p) => POSITION_LABELS[p]),
+      teamsScope: criterion?.teams?.length ? "selected" : "all",
+      teams: (criterion?.teams || []).map(String),
       type: criterion?.type || "manual",
       weightage: criterion?.weightage ?? 0,
       metric: criterion?.metric || "",
@@ -129,6 +137,18 @@ export default function CriterionDialog({
   const parentId = useWatch({ control, name: "parentCriterion" });
   const positionsScope = useWatch({ control, name: "positionsScope" });
   const selectedPositions = useWatch({ control, name: "positions" }) || [];
+  const teamsScope = useWatch({ control, name: "teamsScope" });
+  const selectedTeams = useWatch({ control, name: "teams" }) || [];
+
+  const { data: allTeams = [] } = useQuery({ queryKey: ["teams"], queryFn: fetchTeams, enabled: open });
+  // Teams on offer follow the department choice.
+  const teamOptions =
+    scope === "selected"
+      ? allTeams.filter((t) => (selectedDepts || []).includes(String(t.department?._id || t.department)))
+      : allTeams;
+  const deptNameById = new Map(departments.map((d) => [String(d._id), d.name]));
+  const toggleTeam = (id, checked) =>
+    setValue("teams", checked ? [...selectedTeams, id] : selectedTeams.filter((t) => t !== id), { shouldValidate: true });
 
   const weightDepts =
     scope === "selected"
@@ -180,6 +200,8 @@ export default function CriterionDialog({
         frequency: v.frequency || "monthly",
         scoreFromSubCriteria: Boolean(v.scoreFromSubCriteria),
         positions: v.positionsScope === "selected" ? v.positions : [],
+        // Drop teams outside the chosen departments (e.g. a department was unticked).
+        teams: v.teamsScope === "selected" ? v.teams.filter((id) => teamOptions.some((t) => String(t._id) === id)) : [],
         type: v.type,
         weightage: v.weightage,
         metric: v.type === "manual" ? null : v.metric,
@@ -314,7 +336,7 @@ export default function CriterionDialog({
 
         {/* Department and Position Assignment */}
         <div className="rounded-card border border-border/80 bg-background/50 p-4 space-y-4">
-          <p className="text-xs uppercase tracking-wide font-semibold text-muted">2. Department & Position Assignment</p>
+          <p className="text-xs uppercase tracking-wide font-semibold text-muted">2. Department, Team & Position Assignment</p>
 
           <Controller
             name="departments"
@@ -330,6 +352,43 @@ export default function CriterionDialog({
               />
             )}
           />
+
+          <fieldset className="space-y-2">
+            <legend className="text-sm font-medium">Team assignment</legend>
+            <div className="flex flex-wrap gap-4 text-sm">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" checked={teamsScope === "all"} onChange={() => setValue("teamsScope", "all")} />
+                <span>All teams</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" checked={teamsScope === "selected"} onChange={() => setValue("teamsScope", "selected")} />
+                <span>Selected teams only</span>
+              </label>
+            </div>
+            {teamsScope === "selected" && (
+              <div className="grid grid-cols-1 gap-2 rounded-btn border border-border bg-background p-3 sm:grid-cols-2">
+                {teamOptions.length === 0 && (
+                  <p className="text-sm text-muted">
+                    {scope === "selected" ? "No teams in the selected departments." : "No teams exist yet."}
+                  </p>
+                )}
+                {teamOptions.map((t) => (
+                  <label key={t._id} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={selectedTeams.includes(String(t._id))}
+                      onChange={(e) => toggleTeam(String(t._id), e.target.checked)}
+                    />
+                    <span className="truncate">
+                      {t.name}
+                      <span className="text-muted"> · {deptNameById.get(String(t.department?._id || t.department)) || t.department?.name || "—"}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            )}
+            {errors.teams?.message && <p className="text-sm text-danger">{errors.teams.message}</p>}
+          </fieldset>
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Position Assignment (base permission level)</label>

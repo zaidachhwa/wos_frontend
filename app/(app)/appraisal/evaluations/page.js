@@ -21,6 +21,7 @@ export default function PerformanceEvaluationsPage() {
     open: false,
     employeeId: "",
     criterionId: "",
+    date: "",
   });
 
   if (!canAccess) {
@@ -33,11 +34,12 @@ export default function PerformanceEvaluationsPage() {
     );
   }
 
-  const handleOpenEvaluationDialog = (employeeId = "", criterionId = "") => {
+  const handleOpenEvaluationDialog = (employeeId = "", criterionId = "", date = "") => {
     setDialogState({
       open: true,
       employeeId,
       criterionId,
+      date,
     });
   };
 
@@ -46,6 +48,7 @@ export default function PerformanceEvaluationsPage() {
       open: false,
       employeeId: "",
       criterionId: "",
+      date: "",
     });
   };
 
@@ -121,6 +124,7 @@ export default function PerformanceEvaluationsPage() {
         onClose={handleCloseDialog}
         initialEmployeeId={dialogState.employeeId}
         initialCriterionId={dialogState.criterionId}
+        initialDate={dialogState.date}
       />
     </div>
   );

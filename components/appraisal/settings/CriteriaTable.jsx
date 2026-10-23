@@ -10,7 +10,7 @@ import Badge from "@/components/ui/Badge";
 import { Button, Select } from "@/components/ui/Field";
 import useToast from "@/hooks/useToast";
 import { deleteCriterion, reorderCriteria, fetchPositions } from "@/services/appraisalsService";
-import { fetchDepartments } from "@/services/orgService";
+import { fetchDepartments, fetchTeams } from "@/services/orgService";
 import { METHOD_LABELS, TYPE_LABELS, apiError, fmtScore, positionLabel } from "@/lib/appraisal";
 
 const FREQ_COLORS = {
@@ -24,6 +24,7 @@ export default function CriteriaTable({ criteria, weightage, catalog }) {
   const toast = useToast();
   const queryClient = useQueryClient();
   const { data: departments = [] } = useQuery({ queryKey: ["departments"], queryFn: fetchDepartments });
+  const { data: teams = [] } = useQuery({ queryKey: ["teams"], queryFn: fetchTeams });
   const [editing, setEditing] = useState(undefined); // undefined = closed, null = new
   const [allocation, setAllocation] = useState(null); // null = closed, { focusId }
   const [deptFilter, setDeptFilter] = useState(""); // "" = all criteria
@@ -35,10 +36,15 @@ export default function CriteriaTable({ criteria, weightage, catalog }) {
   });
 
   const deptName = new Map(departments.map((d) => [String(d._id), d.name]));
-  const appliesTo = (c) =>
-    c.departments?.length
+  const teamName = new Map(teams.map((t) => [String(t._id), t.name]));
+  const appliesTo = (c) => {
+    const depts = c.departments?.length
       ? c.departments.map((id) => deptName.get(String(id)) || "Deleted department").join(", ")
       : "All departments";
+    return c.teams?.length
+      ? `${depts} · Teams: ${c.teams.map((id) => teamName.get(String(id)) || "Deleted team").join(", ")}`
+      : depts;
+  };
 
   const appliesToPositions = (c) =>
     c.positions?.length ? c.positions.map(positionLabel).join(", ") : "All positions";

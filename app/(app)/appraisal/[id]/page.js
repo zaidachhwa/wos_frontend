@@ -116,8 +116,10 @@ export default function AppraisalDetailPage({ params }) {
           {GROUPS.map(([group, title]) => {
             const entries = (a.entries || []).filter((e) => (e.group || "automatic") === group);
             if (!entries.length) return null;
-            const subtotal = entries.reduce((s, e) => s + e.score, 0);
-            const max = entries.reduce((s, e) => s + e.maxScore, 0);
+            // Sub-criteria roll up into their main criterion — count main only.
+            const counted = entries.filter((e) => !e.parentKey);
+            const subtotal = counted.reduce((s, e) => s + e.score, 0);
+            const max = counted.reduce((s, e) => s + e.maxScore, 0);
             return (
               <section key={group} className="rounded-card border border-border bg-surface p-5">
                 <div className="flex items-baseline justify-between">

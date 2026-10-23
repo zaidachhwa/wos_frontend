@@ -17,17 +17,25 @@ export default function CriterionLine({ entry, meta, editable, onSave, saving })
   const barTone = entry.performancePct === null ? "bg-border" : pct >= 75 ? "bg-success" : pct >= 40 ? "bg-warning" : "bg-danger";
 
   return (
-    <li className="border-b border-border/60 py-3 last:border-0">
+    <li className={`border-b border-border/60 py-3 last:border-0 ${entry.parentKey ? "ml-6 border-l-2 border-l-border pl-4" : ""}`}>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <div className="min-w-48 flex-1">
-          <p className="font-medium">{entry.name}</p>
+          <p className="font-medium">
+            {entry.parentKey && <span className="text-primary">↳ </span>}
+            {entry.name}
+          </p>
           <p className="text-xs text-muted">
-            {TYPE_LABELS[entry.type]} · weightage {fmtScore(entry.weightage)}%
+            {entry.hasSubCriteria
+              ? `Sum of sub-criteria below · weightage ${fmtScore(entry.weightage)}%`
+              : entry.parentKey
+                ? `${TYPE_LABELS[entry.type]} · sub-criterion · ${fmtScore(entry.weightage)} pts of main`
+                : `${TYPE_LABELS[entry.type]} · weightage ${fmtScore(entry.weightage)}%`}
+            {entry.periods?.length > 0 && ` · rated ${entry.frequency}`}
             {entry.noData && " · no data this month"}
           </p>
         </div>
         {entry.ratingLabel && <Badge value={entry.ratingLabel} tone="info" />}
-        {entry.complete === false && <Badge value="Needs input" tone="warning" />}
+        {entry.complete === false && <Badge value={entry.hasSubCriteria ? "Sub-criteria pending" : "Needs input"} tone="warning" />}
         <div className="w-40">
           <p className="text-right text-sm font-semibold tabular-nums">
             {fmtScore(entry.score)} / {fmtScore(entry.maxScore)}
@@ -61,7 +69,16 @@ export default function CriterionLine({ entry, meta, editable, onSave, saving })
         </div>
       )}
 
-      {editable && entry.type !== "automatic" && <CriterionEvaluation entry={entry} meta={meta} onSave={onSave} saving={saving} />}
+      {editable && entry.type !== "automatic" && !entry.hasSubCriteria && <CriterionEvaluation entry={entry} meta={meta} onSave={onSave} saving={saving} />}
+      {!editable && entry.periods?.length > 0 && (
+        <ul className="mt-2 flex flex-wrap gap-1.5 text-xs">
+          {entry.periods.map((p) => (
+            <li key={p.startDate} className="rounded-btn border border-border px-2 py-0.5">
+              {p.label?.split(" (")[0] || p.startDate}: <span className="font-medium">{p.ratingLabel || "—"}</span>
+            </li>
+          ))}
+        </ul>
+      )}
       {!editable && entry.comment && <p className="mt-2 text-xs text-muted">HR note: {entry.comment}</p>}
     </li>
   );

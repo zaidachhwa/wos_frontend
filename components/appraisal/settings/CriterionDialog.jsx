@@ -310,6 +310,20 @@ export default function CriterionDialog({
             </Select>
           </div>
 
+          {parentId && (() => {
+            const parent = (criteria || []).find((c) => String(c._id) === String(parentId));
+            if (!parent) return null;
+            const all = projectedTotal || 0;
+            const pts = all > 0 ? Math.round(((Number(parent.weightage) * weightVal) / all) * 100) / 100 : 0;
+            return (
+              <p className="text-xs text-muted">
+                Sub-criteria share <strong className="text-foreground">{parent.name}</strong>&apos;s {parent.weightage} points in
+                proportion to their weightage; the main criterion&apos;s score is the sum of theirs. This one is worth{" "}
+                <strong className="text-foreground">{pts} pts</strong>.
+              </p>
+            );
+          })()}
+
           {/* Live Weightage Feedback */}
           <div className="rounded-input border border-border/60 bg-surface/50 p-3 text-xs flex items-center justify-between">
             <div>

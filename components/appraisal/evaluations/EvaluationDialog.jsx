@@ -191,9 +191,7 @@ export default function EvaluationDialog({ open, onClose: onCloseProp, initialEm
           {currentPeriod && (
             <p className="mt-1 text-xs text-muted">
               Marking for (IST): <strong className="text-foreground">{currentPeriod.label}</strong> · counts towards{" "}
-              {currentPeriod.frequency === "monthly"
-                ? `${currentPeriod.month} (monthly score = average of the weekly marks)`
-                : currentPeriod.month}
+{currentPeriod.month}
             </p>
           )}
         </div>

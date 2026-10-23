@@ -11,7 +11,7 @@ import { Button, Select } from "@/components/ui/Field";
 import useToast from "@/hooks/useToast";
 import { deleteCriterion, reorderCriteria, fetchPositions } from "@/services/appraisalsService";
 import { fetchDepartments } from "@/services/orgService";
-import { METHOD_LABELS, TYPE_LABELS, apiError, fmtScore } from "@/lib/appraisal";
+import { METHOD_LABELS, TYPE_LABELS, apiError, fmtScore, positionLabel } from "@/lib/appraisal";
 
 const FREQ_COLORS = {
   daily: "bg-blue-500/10 text-blue-500 border-blue-500/20",
@@ -30,8 +30,8 @@ export default function CriteriaTable({ criteria, weightage, catalog }) {
   const [posFilter, setPosFilter] = useState("");
 
   const { data: positions = [] } = useQuery({
-    queryKey: ["appraisal-positions", deptFilter],
-    queryFn: () => fetchPositions(deptFilter),
+    queryKey: ["appraisal-positions"],
+    queryFn: () => fetchPositions(),
   });
 
   const deptName = new Map(departments.map((d) => [String(d._id), d.name]));
@@ -41,7 +41,7 @@ export default function CriteriaTable({ criteria, weightage, catalog }) {
       : "All departments";
 
   const appliesToPositions = (c) =>
-    c.positions?.length ? c.positions.join(", ") : "All positions";
+    c.positions?.length ? c.positions.map(positionLabel).join(", ") : "All positions";
 
   // Filter criteria
   const overrideIn = (c) => (c.departmentWeightages || []).find((o) => String(o.department) === deptFilter);
@@ -123,7 +123,7 @@ export default function CriteriaTable({ criteria, weightage, catalog }) {
               <option value="">All positions</option>
               {positions.map((p) => (
                 <option key={p} value={p}>
-                  {p}
+                  {positionLabel(p)}
                 </option>
               ))}
             </Select>

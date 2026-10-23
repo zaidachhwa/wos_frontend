@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2, CheckCircle, AlertTriangle } from "lucide-react";
 
 import DepartmentPicker from "@/components/appraisal/settings/DepartmentPicker";
@@ -12,8 +12,8 @@ import Dialog from "@/components/ui/Dialog";
 import { Button, Input, Select, Textarea } from "@/components/ui/Field";
 import Badge from "@/components/ui/Badge";
 import useToast from "@/hooks/useToast";
-import { createCriterion, updateCriterion, fetchPositions } from "@/services/appraisalsService";
-import { METHOD_LABELS, TYPE_LABELS, apiError } from "@/lib/appraisal";
+import { createCriterion, updateCriterion } from "@/services/appraisalsService";
+import { METHOD_LABELS, POSITION_LABELS, TYPE_LABELS, apiError } from "@/lib/appraisal";
 
 const num = () => yup.number().transform((v, o) => (o === "" || o === null ? undefined : v));
 
@@ -59,9 +59,9 @@ const DEFAULT_RATINGS = [
 
 const FREQUENCIES = [
   ["daily", "Daily (one evaluation per day)"],
-  ["weekly", "Weekly (one evaluation per week)"],
-  ["biweekly", "Biweekly (one evaluation per 2 weeks)"],
-  ["monthly", "Monthly (one evaluation per month)"],
+  ["weekly", "Weekly (one evaluation per week, Monday–Saturday)"],
+  ["biweekly", "Biweekly (one evaluation per 2 weeks, 1st Monday–2nd Saturday)"],
+  ["monthly", "Monthly (one evaluation per month, 1st–last day)"],
 ];
 
 export default function CriterionDialog({
@@ -76,18 +76,11 @@ export default function CriterionDialog({
   const toast = useToast();
   const queryClient = useQueryClient();
   const [error, setError] = useState("");
-  const [newPositionInput, setNewPositionInput] = useState("");
 
   const onClose = () => {
     setError("");
     onCloseProp();
   };
-
-  const { data: positionsList = [] } = useQuery({
-    queryKey: ["appraisal-positions"],
-    queryFn: () => fetchPositions(),
-    enabled: open,
-  });
 
   const {
     register,
@@ -110,7 +103,8 @@ export default function CriterionDialog({
       frequency: criterion?.frequency || "monthly",
       scoreFromSubCriteria: criterion?.scoreFromSubCriteria ?? true,
       positionsScope: criterion?.positions?.length ? "selected" : "all",
-      positions: criterion?.positions || [],
+      // Only base roles are valid positions; older free-text designations are dropped.
+      positions: (criterion?.positions || []).filter((p) => POSITION_LABELS[p]),
       type: criterion?.type || "manual",
       weightage: criterion?.weightage ?? 0,
       metric: criterion?.metric || "",
@@ -171,15 +165,6 @@ export default function CriterionDialog({
       setValue("positions", selectedPositions.filter((p) => p !== pos));
     } else {
       setValue("positions", [...selectedPositions, pos]);
-    }
-  };
-
-  const handleAddCustomPosition = (e) => {
-    e.preventDefault();
-    const clean = newPositionInput.trim();
-    if (clean && !selectedPositions.includes(clean)) {
-      setValue("positions", [...selectedPositions, clean]);
-      setNewPositionInput("");
     }
   };
 
@@ -347,7 +332,7 @@ export default function CriterionDialog({
           />
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Position / Designation Assignment</label>
+            <label className="text-sm font-medium">Position Assignment (base permission level)</label>
             <div className="flex gap-4 text-sm">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -375,7 +360,7 @@ export default function CriterionDialog({
               <div className="mt-2 space-y-2 rounded-card border border-border bg-surface p-3">
                 <p className="text-xs text-muted">Select positions that this criterion applies to:</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {[...new Set([...positionsList, ...selectedPositions])].map((pos) => {
+                  {Object.entries(POSITION_LABELS).map(([pos, label]) => {
                     const isSelected = selectedPositions.includes(pos);
                     return (
                       <button
@@ -388,22 +373,10 @@ export default function CriterionDialog({
                             : "border border-border bg-background hover:bg-surface text-muted"
                         }`}
                       >
-                        {pos} {isSelected ? "✓" : "+"}
+                        {label} {isSelected ? "✓" : "+"}
                       </button>
                     );
                   })}
-                </div>
-                <div className="flex gap-2 pt-2">
-                  <input
-                    type="text"
-                    value={newPositionInput}
-                    onChange={(e) => setNewPositionInput(e.target.value)}
-                    placeholder="Add custom position..."
-                    className="flex-1 rounded-input border border-border bg-background px-3 py-1 text-xs outline-none focus:border-primary"
-                  />
-                  <Button variant="secondary" size="sm" type="button" onClick={handleAddCustomPosition}>
-                    Add position
-                  </Button>
                 </div>
               </div>
             )}

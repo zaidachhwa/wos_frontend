@@ -15,7 +15,8 @@ import {
   fetchAppraisalSettings,
   recordPerformanceEvaluation,
 } from "@/services/appraisalsService";
-import { apiError } from "@/lib/appraisal";
+import { apiError, positionLabel } from "@/lib/appraisal";
+import { getPeriodBounds } from "@/lib/appraisalPeriod";
 
 const today = () => new Date(Date.now() + 5.5 * 3600 * 1000).toISOString().slice(0, 10);
 
@@ -95,14 +96,16 @@ export default function EvaluationDialog({ open, onClose: onCloseProp, initialEm
       const deptId = String(selectedEmployee.department._id || selectedEmployee.department);
       if (!c.departments.map(String).includes(deptId)) return false;
     }
-    if (c.positions?.length && selectedEmployee?.designation) {
-      const empPos = selectedEmployee.designation.trim().toLowerCase();
-      if (!c.positions.some((p) => p.trim().toLowerCase() === empPos)) return false;
+    if (c.positions?.length && selectedEmployee) {
+      // Same rule as the backend: base role, or designation for older criteria.
+      const mine = [selectedEmployee.role, selectedEmployee.designation].filter(Boolean).map((p) => p.trim().toLowerCase());
+      if (!c.positions.some((p) => mine.includes(p.trim().toLowerCase()))) return false;
     }
     return true;
   });
 
   const currentCriterion = allCriteria.find((c) => String(c._id) === String(selectedCriterionId));
+  const currentPeriod = currentCriterion ? getPeriodBounds(currentCriterion.frequency || "monthly", selectedDate) : null;
 
   const save = useMutation({
     onMutate: () => setError(""),
@@ -167,7 +170,9 @@ export default function EvaluationDialog({ open, onClose: onCloseProp, initialEm
             <div>
               <span className="text-muted">Target Assignment:</span>{" "}
               <strong>{selectedEmployee.department?.name || "No Department"}</strong> ·{" "}
-              <span className="text-primary font-medium">{selectedEmployee.designation || "General Position"}</span>
+              <span className="text-primary font-medium">{positionLabel(selectedEmployee.role)}
+                {selectedEmployee.designation ? ` (${selectedEmployee.designation})` : ""}
+              </span>
             </div>
             <span className="text-muted">{applicableCriteria.length} criteria apply</span>
           </div>
@@ -192,6 +197,17 @@ export default function EvaluationDialog({ open, onClose: onCloseProp, initialEm
               Frequency: <strong className="capitalize text-foreground">{currentCriterion.frequency || "monthly"}</strong> ·{" "}
               Weight: <strong className="text-foreground">{currentCriterion.weightage}%</strong>
               {currentCriterion.description ? ` — ${currentCriterion.description}` : ""}
+            </p>
+          )}
+          {currentPeriod && (
+            <p className="mt-1 text-xs text-muted">
+              Evaluation period (IST):{" "}
+              <strong className="text-foreground">
+                {currentPeriod.startDate === currentPeriod.endDate
+                  ? currentPeriod.startDate
+                  : `${currentPeriod.startDate} to ${currentPeriod.endDate}`}
+              </strong>{" "}
+              · counts towards {currentPeriod.month}
             </p>
           )}
         </div>
